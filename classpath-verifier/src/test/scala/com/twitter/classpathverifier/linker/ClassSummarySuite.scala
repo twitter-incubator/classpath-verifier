@@ -1,0 +1,187 @@
+package com.twitter.classpathverifier.linker
+
+import com.twitter.classpathverifier.BuildInfo
+import com.twitter.classpathverifier.testutil.Build
+import com.twitter.classpathverifier.testutil.TestBuilds
+
+class ClassSummarySuite extends BaseLinkerSuite with Summary {
+
+  testSummary("test.MyTrait", TestBuilds.abstractMembers, ClassKind.Interface) {
+    _.abstractMeth("foo", "(Ltest.MyTrait;)I")
+  }
+
+  testSummary(
+    "test.MyAbstractClass",
+    TestBuilds.abstractMembers,
+    ClassKind.AbstractClass,
+    interfaces = List("test.MyTrait")
+  ) {
+    _.emptyCtor
+  }
+
+  testSummary("test.MyConcreteClass", TestBuilds.abstractMembers, parent = "test.MyAbstractClass") {
+    _.emptyCtor
+      .meth("foo", "(Ltest.MyTrait;)I")
+  }
+
+  testSummary("test.Valid", TestBuilds.valid) { b =>
+    b.emptyCtor
+      .meth(
+        "multiply",
+        "(II)I",
+        classDep("test.Helper"),
+        methDep("test.Helper#<init>:(II)V"),
+        methDep("test.Helper#multiply:()I"),
+        classDep("test.Helper")
+      )
+      .meth(
+        "foo",
+        "(I)V",
+        b.methDep("multiply"),
+        methDep("java.io.PrintStream#println:(I)V")
+      )
+  }
+
+  testSummary("test.ValidObject$", TestBuilds.valid, disableOnScala3 = true) { b =>
+    b.obj
+      .meth("$anonfun$main$1", "([Ljava.lang.String;)I")
+      .deserializeLambda("$anonfun$main$1")
+      .main(
+        methDep("scala.Predef$#println:(Ljava.lang.Object;)V"),
+        methDep(
+          "cats.syntax.TryOps$#toValidated$extension:(Lscala.util.Try;)Lcats.data.Validated;"
+        ),
+        methDep(
+          "cats.syntax.package$try_$#catsSyntaxTry:(Lscala.util.Try;)Lscala.util.Try;"
+        ),
+        methDep("scala.util.Try$#apply:(Lscala.Function0;)Lscala.util.Try;"),
+        classDep("test.Valid"),
+        methDep("test.Valid#<init>:()V"),
+        methDep("test.Valid#foo:(I)V"),
+        b.altMetafactory,
+        b.methDep("$anonfun$main$1"),
+        classDep("test.Valid")
+      )
+  }
+
+  testSummary("test.InheritedMembers", TestBuilds.inherited) { b =>
+    b.emptyCtor
+      .main(
+        classDep("test.Child"),
+        methDep("test.Child#<init>:()V"),
+        methDep("test.Child#foo:()I"),
+        methDep("test.Child#bar:()I"),
+        methDep("test.Child#baz:()I"),
+        methDep("test.Child#toString:()Ljava.lang.String;"),
+        classDep("test.Child")
+      )
+  }
+
+  testSummary("test.Parent", TestBuilds.inherited, interfaces = List("test.ParentInterface")) { b =>
+    b.emptyCtor
+      .meth("foo", "()I")
+  }
+
+  testSummary(
+    "test.Middle",
+    TestBuilds.inherited,
+    parent = "test.Parent",
+    interfaces = List("test.MiddleInterface")
+  ) { b =>
+    b.emptyCtor
+      .meth(
+        "bar",
+        "()I",
+        methDep("test.Middle#foo:()I")
+      )
+  }
+
+  testSummary(
+    "test.Child",
+    TestBuilds.inherited,
+    parent = "test.Middle",
+    interfaces = List("test.ChildInterface")
+  ) { b =>
+    b.emptyCtor
+      .meth(
+        "baz",
+        "()I",
+        methDep("test.Child#foo:()I"),
+        methDep("test.Child#bar:()I")
+      )
+  }
+
+  testSummary("test.ArrayClone", TestBuilds.arrayClone) { b =>
+    b.emptyCtor
+      .main(
+        methDep("java.lang.Object#clone:()Ljava.lang.Object;"),
+      )
+  }
+
+  testSummary("test.Lambda", TestBuilds.lambda, disableOnScala3 = true) { b =>
+    b.emptyCtor
+      .meth(
+        "$anonfun$main$1",
+        "(Ljava.lang.String;)Lcats.data.Validated$Valid;",
+        methDep("cats.data.Validated$Valid#<init>:(Ljava.lang.Object;)V"),
+        classDep("cats.data.Validated$Valid"),
+        classDep("cats.data.Validated$Valid")
+      )
+      .deserializeLambda("$anonfun$main$1")
+      .meth(
+        "applyToFoo",
+        "(Lscala.Function1;)Ljava.lang.Object;",
+        methDep("scala.Function1#apply:(Ljava.lang.Object;)Ljava.lang.Object;")
+      )
+      .main(b.altMetafactory, b.methDep("$anonfun$main$1"), b.methDep("applyToFoo"))
+  }
+
+  testSummary("test.Override", TestBuilds.overrideMembers) { b =>
+    b.emptyCtor
+      .main(
+        methDep("test.MyBaseTrait#foo:(Ljava.lang.Object;)Ljava.lang.Object;"),
+        methDep("test.MyTraitImpl#foo:(Ljava.lang.Object;)Ltest.MyBaseTrait;")
+      )
+  }
+
+  private def testSummary(
+      className: String,
+      build: Build,
+      kind: ClassKind = ClassKind.Class,
+      parent: String = "java.lang.Object",
+      interfaces: List[String] = Nil,
+      disableOnScala3: Boolean = false
+  )(builder: ClassSummaryBuilder => Unit)(implicit loc: munit.Location): Unit = {
+    test(s"Summarize $className") {
+      implicit val ctx: Context = failOnError
+      val expectedSummary = summary(className, kind, parent, interfaces)(builder)
+      val classpath = build.allClasspath.full
+      val summarizer = new ClassSummarizer(classpath)
+      val obtainedSummary =
+        summarizer(className)
+
+      if (BuildInfo.scalaBinaryVersion != "3" || !disableOnScala3) {
+        assertEquals(comparableSummary(obtainedSummary), comparableSummary(expectedSummary))
+      }
+    }
+  }
+
+  private def comparableSummary(summary: ClassSummary): ClassSummary =
+    summary.copy(
+      interfaces = summary.interfaces.sorted,
+      methods = comparableMethodSummaries(summary.methods)
+    )
+
+  private def comparableMethodSummaries(methods: List[MethodSummary]): List[MethodSummary] =
+    methods.map(comparableMethodSummary).sortBy { method =>
+      (method.className, method.methodName, method.descriptor, method.isAbstract)
+    }
+
+  private def comparableMethodSummary(summary: MethodSummary): MethodSummary =
+    summary.copy(
+      dependencies = comparableDependencies(summary.dependencies)
+    )
+
+  private def comparableDependencies(dependencies: List[Dependency]): List[Dependency] =
+    dependencies.sortBy(_.ref.show)
+}
