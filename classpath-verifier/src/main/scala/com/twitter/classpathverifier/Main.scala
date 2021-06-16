@@ -32,6 +32,11 @@ object Main {
         .action(onConfig((v, c) => c.addJarEntrypoints(Paths.get(v))))
         .text("JARs to fully check"),
       builder
+        .opt[String]('m', "main")
+        .unbounded()
+        .action(onConfig((v, c) => c.addMains(Paths.get(v))))
+        .text("JARs whose main methods to check"),
+      builder
         .opt[Boolean]('p', "path")
         .action(onConfig((v, c) => c.copy(showPaths = v)))
         .text("Whether to show the path from entrypoint to missing symbol")
