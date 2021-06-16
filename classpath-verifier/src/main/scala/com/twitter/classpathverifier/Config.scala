@@ -6,7 +6,9 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 import com.twitter.classpathverifier.diagnostics.Reporter
+import com.twitter.classpathverifier.linker.Constants
 import com.twitter.classpathverifier.linker.Context
+import com.twitter.classpathverifier.linker.MethodSummary
 import com.twitter.classpathverifier.linker.Summarizer
 
 case class Config(
@@ -21,13 +23,30 @@ case class Config(
   }
 
   def addJarEntrypoints(jar: Path): Config = {
-    val ctx = Context.init(this)
     val jarEntrypoints = for {
-      summary <- Summarizer.summarizeJar(jar)(ctx)
-      entrypoint <- summary.methods
-    } yield entrypoint.ref
+      method <- allMethods(jar)
+    } yield method.ref
 
     copy(entrypoints = entrypoints ::: jarEntrypoints)
+  }
+
+  def addMains(jar: Path): Config = {
+    def isMain(method: MethodSummary): Boolean =
+      method.methodName == Constants.MainMethodName && method.descriptor == Constants.MainMethodDescriptor
+    val mains = for {
+      method <- allMethods(jar)
+      if isMain(method)
+    } yield method.ref
+
+    copy(entrypoints = entrypoints ::: mains)
+  }
+
+  private def allMethods(jar: Path): List[MethodSummary] = {
+    val ctx = Context.init(this)
+    for {
+      summary <- Summarizer.summarizeJar(jar)(ctx)
+      method <- summary.methods
+    } yield method
   }
 }
 
