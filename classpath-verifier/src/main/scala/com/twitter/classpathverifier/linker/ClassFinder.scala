@@ -24,6 +24,11 @@ private object Finder {
     Type.nameToPath(name) + ".class"
   def pathToName(name: String): String =
     Type.pathToName(name.stripSuffix(".class"))
+
+  object Empty extends Finder {
+    override def find(name: String): Option[InputStream] = None
+    override def allClasses(): List[String] = Nil
+  }
 }
 
 class ClassFinder(classpath: List[Path]) extends Finder {
@@ -37,7 +42,7 @@ class ClassFinder(classpath: List[Path]) extends Finder {
     else if (Files.isDirectory(path))
       new DirectoryClassFinder(path)
     else
-      ???
+      Finder.Empty
 
   def find(name: String): Option[InputStream] =
     finders.map(_.find(name)).collectFirst {
