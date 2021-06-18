@@ -1,7 +1,6 @@
 package com.twitter.classpathverifier.linker
 
 import java.io.BufferedInputStream
-import java.io.FileInputStream
 import java.io.InputStream
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
@@ -72,7 +71,7 @@ private class DirectoryClassFinder(directory: Path) extends Finder {
   def find(name: String): Option[InputStream] = {
     val path = directory.resolve(Finder.nameToPath(name))
     if (Files.isRegularFile(path))
-      Some(new BufferedInputStream(new FileInputStream(path.toFile)))
+      Some(new BufferedInputStream(Files.newInputStream(path)))
     else
       None
   }

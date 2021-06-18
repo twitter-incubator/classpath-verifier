@@ -9,7 +9,6 @@ import com.twitter.classpathverifier.diagnostics.LinkerError
 import com.twitter.classpathverifier.diagnostics.MissingClassError
 import com.twitter.classpathverifier.diagnostics.MissingMethodError
 import com.twitter.classpathverifier.testutil.Build
-import com.twitter.classpathverifier.testutil.Classpath
 import com.twitter.classpathverifier.testutil.Project
 import com.twitter.classpathverifier.testutil.TestBuilds
 
@@ -179,10 +178,9 @@ class LinkerSuite extends BaseLinkerSuite {
 
   private def linkErrors(entrypoint: String, classpath: List[Path]): Seq[LinkerError] = {
     val reference = Reference.Method(entrypoint).getOrElse(fail(s"Cannot parse: '$entrypoint'"))
-    val summarizer = new ClassSummarizer(Classpath.bootClasspath ::: classpath)
-    val linker = new Linker(summarizer)
-    val ctx = Context.init(Config.empty)
-    linker.verify(reference, ctx)
+    val config = Config.empty.copy(classpath = classpath, entrypoints = reference :: Nil)
+    val ctx = Context.init(config)
+    Linker.verify()(ctx)
     ctx.reporter.errors
   }
 

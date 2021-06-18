@@ -1,7 +1,7 @@
 package com.twitter.classpathverifier.linker
 
+import com.twitter.classpathverifier.jdk.JavaHome
 import com.twitter.classpathverifier.testutil.Build
-import com.twitter.classpathverifier.testutil.Classpath
 import com.twitter.classpathverifier.testutil.Project
 import com.twitter.classpathverifier.testutil.TestBuilds
 
@@ -26,7 +26,8 @@ class PathFinderSuite extends BaseLinkerSuite {
     val start = expected.head.ref
     val end = expected.last.ref
     test(s"path: ${start.show} -> ${end.show}") {
-      val summarizer = new ClassSummarizer(Classpath.bootClasspath ::: classpath)
+      val jreClasses = JavaHome.jreClasspathEntries(JavaHome.javahome())
+      val summarizer = new ClassSummarizer(jreClasses ::: classpath)
       val obtainedPath = PathFinder.path(summarizer, start, end)
       val expectedPath = if (expected.isEmpty) None else Some(expected.map(_.ref))
       assertEquals(obtainedPath, expectedPath)

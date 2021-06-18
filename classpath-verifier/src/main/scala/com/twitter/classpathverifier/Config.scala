@@ -1,27 +1,23 @@
 package com.twitter.classpathverifier
 
 import java.io.File
-import java.net.URLClassLoader
 import java.nio.file.Path
 import java.nio.file.Paths
 
 import com.twitter.classpathverifier.diagnostics.Reporter
+import com.twitter.classpathverifier.jdk.JavaHome
 import com.twitter.classpathverifier.linker.Constants
 import com.twitter.classpathverifier.linker.Context
 import com.twitter.classpathverifier.linker.MethodSummary
 import com.twitter.classpathverifier.linker.Summarizer
 
 case class Config(
+    javahome: Path,
     classpath: List[Path],
     entrypoints: List[Reference.Method],
     showPaths: Boolean,
     reporter: Reporter
 ) {
-  lazy val classloader: URLClassLoader = {
-    val entries = classpath.map(_.toUri.toURL).toArray
-    new URLClassLoader(entries)
-  }
-
   def addJarEntrypoints(jar: Path): Config = {
     val jarEntrypoints = for {
       method <- allMethods(jar)
@@ -41,6 +37,9 @@ case class Config(
     copy(entrypoints = entrypoints ::: mains)
   }
 
+  lazy val fullClasspath: List[Path] =
+    JavaHome.jreClasspathEntries(javahome) ::: classpath
+
   private def allMethods(jar: Path): List[MethodSummary] = {
     val ctx = Context.init(this)
     for {
@@ -51,7 +50,7 @@ case class Config(
 }
 
 object Config {
-  def empty: Config = Config(Nil, Nil, showPaths = true, Reporter.newReporter)
+  def empty: Config = Config(JavaHome.javahome(), Nil, Nil, showPaths = true, Reporter.newReporter)
 
   def toClasspath(classpath: String): List[Path] =
     classpath
