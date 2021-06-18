@@ -2,12 +2,12 @@ package com.twitter.classpathverifier.descriptors
 
 import java.nio.file.Path
 
+import com.twitter.classpathverifier.jdk.JavaHome
 import com.twitter.classpathverifier.linker.BaseLinkerSuite
 import com.twitter.classpathverifier.linker.ClassSummarizer
 import com.twitter.classpathverifier.linker.Context
 import com.twitter.classpathverifier.linker.Summarizer
 import com.twitter.classpathverifier.testutil.Build
-import com.twitter.classpathverifier.testutil.Classpath
 import com.twitter.classpathverifier.testutil.TestBuilds
 
 class DescriptorSuite extends BaseLinkerSuite {
@@ -37,7 +37,8 @@ class DescriptorSuite extends BaseLinkerSuite {
   ): Unit =
     test(s"$callSite can be passed to $declaration") {
       val classpath = build.allClasspath.full
-      withDescriptors(declaration, callSite, Classpath.bootClasspath ++ classpath) {
+      val jreClasses = JavaHome.jreClasspathEntries(JavaHome.javahome())
+      withDescriptors(declaration, callSite, jreClasses ::: classpath) {
         (declarationDesc, callSiteDesc, summarizer) =>
           assert(
             callSiteDesc.compatibleWith(summarizer, declarationDesc),
@@ -55,7 +56,8 @@ class DescriptorSuite extends BaseLinkerSuite {
   ): Unit =
     test(s"$callSite cannot be passed to $declaration") {
       val classpath = build.allClasspath.full
-      withDescriptors(declaration, callSite, Classpath.bootClasspath ++ classpath) {
+      val jreClasses = JavaHome.jreClasspathEntries(JavaHome.javahome())
+      withDescriptors(declaration, callSite, jreClasses ::: classpath) {
         (declarationDesc, callSiteDesc, summarize) =>
           assert(
             !callSiteDesc.compatibleWith(summarize, declarationDesc),

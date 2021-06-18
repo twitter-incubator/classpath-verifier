@@ -19,7 +19,7 @@ object Linker {
 
   def verify()(implicit ctx: Context): Unit = {
     val entrypoints = ctx.config.entrypoints
-    val classpath = ctx.config.classpath
+    val classpath = ctx.config.fullClasspath
     val summarizer = new ClassSummarizer(classpath)
     val linker = new Linker(summarizer)
     ctx.config.entrypoints.foreach { entrypoint =>

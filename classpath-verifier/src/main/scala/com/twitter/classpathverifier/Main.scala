@@ -3,6 +3,7 @@ package com.twitter.classpathverifier
 import java.nio.file.Paths
 
 import com.twitter.classpathverifier.diagnostics.LinkerError
+import com.twitter.classpathverifier.jdk.JavaHome
 import com.twitter.classpathverifier.linker.Context
 import com.twitter.classpathverifier.linker.Linker
 import scopt.OParser
@@ -39,7 +40,11 @@ object Main {
       builder
         .opt[Boolean]('p', "path")
         .action(onConfig((v, c) => c.copy(showPaths = v)))
-        .text("Whether to show the path from entrypoint to missing symbol")
+        .text("Whether to show the path from entrypoint to missing symbol"),
+      builder
+        .opt[String]('h', "javahome")
+        .action(onConfig((v, c) => c.copy(javahome = Paths.get(v))))
+        .text(s"The path to the javahome to use while linking (defaults to ${JavaHome.javahome()})")
     )
   }
 
