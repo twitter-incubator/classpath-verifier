@@ -27,7 +27,7 @@ case class ClassDependency(ref: Reference.Clazz) extends Dependency
 sealed trait MethodDependency extends Dependency {
   type Dep <: Dependency
   def ref: Reference.Method
-  def inClass(className: String): Dep
+  def inClass(fullName: String): Dep
 }
 
 object MethodDependency {
@@ -35,11 +35,11 @@ object MethodDependency {
   case class Static(ref: Reference.Method) extends MethodDependency {
     type Dep = Static
     def dynamic: Dynamic = Dynamic(ref)
-    override def inClass(className: String): Dep = copy(ref = ref.copy(className = className))
+    override def inClass(fullName: String): Dep = copy(ref = ref.copy(fullClassName = fullName))
   }
   case class Dynamic(ref: Reference.Method) extends MethodDependency {
     type Dep = Dynamic
     def static: Static = Static(ref)
-    override def inClass(className: String): Dep = copy(ref = ref.copy(className = className))
+    override def inClass(fullName: String): Dep = copy(ref = ref.copy(fullClassName = fullName))
   }
 }

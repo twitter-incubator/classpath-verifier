@@ -20,8 +20,8 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import com.twitter.classpathverifier.Config
 import com.twitter.classpathverifier.Reference
+import com.twitter.classpathverifier.config.Config
 import com.twitter.classpathverifier.diagnostics.LinkerError
 import com.twitter.classpathverifier.diagnostics.MissingMethodError
 
@@ -29,11 +29,11 @@ object Linker {
   def verify(classpath: List[Path], entrypoints: List[Reference.Method]): Seq[LinkerError] = {
     val config = Config.empty.copy(classpath = classpath, entrypoints = entrypoints)
     val ctx = Context.init(config)
-    verify()(ctx)
+    verify(ctx)
     ctx.reporter.errors
   }
 
-  def verify()(implicit ctx: Context): Unit = {
+  def verify(ctx: Context): Unit = {
     val entrypoints = ctx.config.entrypoints
     val classpath = ctx.config.fullClasspath
     val summarizer = new ClassSummarizer(classpath)
@@ -41,6 +41,7 @@ object Linker {
     ctx.config.entrypoints.foreach { entrypoint =>
       linker.verify(entrypoint, ctx)
     }
+    ctx.dot.writeGraph()
   }
 
 }
@@ -65,7 +66,7 @@ private class Linker(summarizer: Summarizer) {
         refs.forEach {
           case (abstractDep, ctx) =>
             while (subclasses.hasMoreElements()) {
-              val current = abstractDep.inClass(className = subclasses.nextElement())
+              val current = abstractDep.inClass(fullName = subclasses.nextElement())
               verify(current)(ctx)
             }
         }
@@ -93,12 +94,15 @@ private class Linker(summarizer: Summarizer) {
     dep match {
       case dep: MethodDependency => verifyDep(classSummary, dep)
       case dep: ClassDependency =>
+        ctx.dot.addDependency(dep.ref)
         classSummary.parent.foreach { parent =>
-          val dependency = ClassDependency(new Reference.Clazz(parent))
+          val parentReference = Reference.Clazz(parent)
+          val dependency = ClassDependency(parentReference)
           toCheck.add(dependency -> ctx)
         }
         classSummary.interfaces.foreach { interface =>
-          val dependency = ClassDependency(new Reference.Clazz(interface))
+          val interfaceReference = Reference.Clazz(interface)
+          val dependency = ClassDependency(interfaceReference)
           toCheck.add(dependency -> ctx)
         }
     }
@@ -108,12 +112,17 @@ private class Linker(summarizer: Summarizer) {
       classSummary: ClassSummary,
       dep: MethodDependency
   )(implicit ctx: Context): Unit = {
+    ctx.dot.addDependency(dep.ref)
     classSummary.resolveDep(summarizer, dep) match {
       case None if classSummary.kind == ClassKind.Class =>
+        ctx.dot.markMissing(dep.ref)
         ctx.reporter.report(MissingMethodError(dep.ref))
       case None =>
         val methodsToCheck =
-          toCheckInSubclassesOf.computeIfAbsent(dep.ref.className, _ => new ConcurrentLinkedQueue)
+          toCheckInSubclassesOf.computeIfAbsent(
+            dep.ref.fullClassName,
+            _ => new ConcurrentLinkedQueue
+          )
         methodsToCheck.add(dep -> ctx)
       case Some(meth) =>
         meth.dependencies.foreach(dependency => toCheck.add(dependency -> ctx.in(meth.ref)))

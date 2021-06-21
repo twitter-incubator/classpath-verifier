@@ -32,7 +32,7 @@ class MethodFinder(classpath: List[Path]) {
 
   def find(entrypoint: Reference.Method): Option[MethodVisitor] =
     classFinder
-      .find(entrypoint.className)
+      .find(entrypoint.fullClassName)
       .map { clazz =>
         val reader = new ClassReader(clazz)
         val descriptor = Type.nameToPath(entrypoint.descriptor)

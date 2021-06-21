@@ -25,19 +25,19 @@ import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 
 sealed case class MethodSummary(
-    className: String,
+    fullClassName: String,
     methodName: String,
     descriptor: String,
     dependencies: List[Dependency],
     isAbstract: Boolean
 ) {
-  def ref: Reference.Method = Reference.Method(className, methodName, descriptor)
+  def ref: Reference.Method = Reference.Method(fullClassName, methodName, descriptor)
 }
 
 object MethodSummary {
   object Empty
       extends MethodSummary(
-        className = "",
+        fullClassName = "",
         methodName = "",
         descriptor = "",
         dependencies = Nil,
@@ -88,7 +88,7 @@ object MethodSummary {
       val owner = actualOwner(rawOwner)
       val reference = new Reference.Method(owner, name, Type.pathToName(descriptor))
       if (name == Constants.InitMethod) {
-        val clazzReference = new Reference.Clazz(owner)
+        val clazzReference = Reference.Clazz(owner)
         dependencies += ClassDependency(clazzReference)
       }
       dependencies += MethodDependency.Static(reference)
@@ -101,7 +101,7 @@ object MethodSummary {
       super.visitTypeInsn(opcode, classType)
       if (opcode != Opcodes.ANEWARRAY) {
         val tpe = actualOwner(classType)
-        val reference = new Reference.Clazz(tpe)
+        val reference = Reference.Clazz(tpe)
         dependencies += new ClassDependency(reference)
       }
     }

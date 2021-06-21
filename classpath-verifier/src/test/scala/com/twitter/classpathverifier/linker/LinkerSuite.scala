@@ -19,8 +19,8 @@ package com.twitter.classpathverifier.linker
 import java.nio.file.Path
 
 import com.twitter.classpathverifier.BuildInfo
-import com.twitter.classpathverifier.Config
 import com.twitter.classpathverifier.Reference
+import com.twitter.classpathverifier.config.Config
 import com.twitter.classpathverifier.diagnostics.LinkerError
 import com.twitter.classpathverifier.diagnostics.MissingClassError
 import com.twitter.classpathverifier.diagnostics.MissingMethodError
@@ -167,13 +167,8 @@ class LinkerSuite extends BaseLinkerSuite {
       errors: List[LinkerError]
   )(implicit loc: munit.Location): Unit =
     test(s"${build.name}: `$entrypoint` links with v1, not with v2") {
-      val v1Classpath = build.classpath("v1").full
-      val v2Classpath = build.classpath("v2").full.filterNot(v1Classpath.contains)
-      val validClasspath = build.classpath("main").full
-      val brokenClasspath = v2Classpath ++ validClasspath.filterNot(v1Classpath.contains)
-
-      assertEquals(linkErrors(entrypoint, validClasspath), Nil)
-      assertEquals(linkErrors(entrypoint, brokenClasspath), errors)
+      assertEquals(linkErrors(entrypoint, build.mainClasspath), Nil)
+      assertEquals(linkErrors(entrypoint, build.brokenMainClasspath), errors)
     }
 
   private def linksInBuild(build: Build, code: String)(implicit loc: munit.Location): Unit = {
@@ -196,7 +191,7 @@ class LinkerSuite extends BaseLinkerSuite {
     val reference = Reference.Method(entrypoint).getOrElse(fail(s"Cannot parse: '$entrypoint'"))
     val config = Config.empty.copy(classpath = classpath, entrypoints = reference :: Nil)
     val ctx = Context.init(config)
-    Linker.verify()(ctx)
+    Linker.verify(ctx)
     ctx.reporter.errors
   }
 

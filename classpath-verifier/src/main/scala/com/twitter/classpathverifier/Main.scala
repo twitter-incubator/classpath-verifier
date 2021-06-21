@@ -18,7 +18,10 @@ package com.twitter.classpathverifier
 
 import java.nio.file.Paths
 
+import com.twitter.classpathverifier.config.Config
+import com.twitter.classpathverifier.config.DotConfig
 import com.twitter.classpathverifier.diagnostics.LinkerError
+import com.twitter.classpathverifier.dot.DotBuffer
 import com.twitter.classpathverifier.jdk.JavaHome
 import com.twitter.classpathverifier.linker.Context
 import com.twitter.classpathverifier.linker.Linker
@@ -29,6 +32,12 @@ object Main {
     val builder = OParser.builder[Context]
     def onConfig[T](op: (T, Config) => Config): (T, Context) => Context =
       (value, ctx) => ctx.copy(config = op(value, ctx.config))
+    def onDotConfig[T](op: (T, DotConfig) => DotConfig): (T, Context) => Context =
+      (value, ctx) => {
+        val newConfig = ctx.config.copy(dotConfig = op(value, ctx.config.dotConfig))
+        val dotBuffer = DotBuffer(newConfig.dotConfig)
+        ctx.copy(config = newConfig, dot = dotBuffer)
+      }
     OParser.sequence(
       builder.programName("classpath-verifier"),
       builder.head("classpath-verifier", "0.1"),
@@ -60,12 +69,27 @@ object Main {
       builder
         .opt[String]('h', "javahome")
         .action(onConfig((v, c) => c.copy(javahome = Paths.get(v))))
-        .text(s"The path to the javahome to use while linking (defaults to ${JavaHome.javahome()})")
+        .text(
+          s"The path to the javahome to use while linking (defaults to ${JavaHome.javahome()})"
+        ),
+      builder
+        .opt[String]("dot-output")
+        .action(onDotConfig((v, c) => c.copy(output = Some(Paths.get(v)))))
+        .text("The path where to write the DOT dependency graph"),
+      builder
+        .opt[DotConfig.Granularity]("dot-granularity")
+        .action(onDotConfig((v, c) => c.copy(granularity = v)))
+        .text("The DOT graph granularity. Possible values: package, class, method"),
+      builder
+        .opt[String]("dot-package-filter")
+        .unbounded()
+        .action(onDotConfig((v, c) => c.copy(packageFilter = c.packageFilter + v)))
+        .text("Package name to include in the DOT graph")
     )
   }
 
   private def process(implicit ctx: Context): Unit = {
-    Linker.verify()
+    Linker.verify(ctx)
     if (ctx.reporter.hasErrors) {
       ctx.reporter.errors.foreach(reportError(_))
       System.exit(1)

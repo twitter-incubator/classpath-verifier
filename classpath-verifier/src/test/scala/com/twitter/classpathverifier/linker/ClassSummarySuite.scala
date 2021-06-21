@@ -190,7 +190,7 @@ class ClassSummarySuite extends BaseLinkerSuite with Summary {
 
   private def comparableMethodSummaries(methods: List[MethodSummary]): List[MethodSummary] =
     methods.map(comparableMethodSummary).sortBy { method =>
-      (method.className, method.methodName, method.descriptor, method.isAbstract)
+      (method.fullClassName, method.methodName, method.descriptor, method.isAbstract)
     }
 
   private def comparableMethodSummary(summary: MethodSummary): MethodSummary =
