@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.twitter.classpathverifier
+package com.twitter.classpathverifier.config
 
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import com.twitter.classpathverifier.Reference
 import com.twitter.classpathverifier.diagnostics.Reporter
 import com.twitter.classpathverifier.jdk.JavaHome
 import com.twitter.classpathverifier.linker.Constants
@@ -27,12 +28,13 @@ import com.twitter.classpathverifier.linker.Context
 import com.twitter.classpathverifier.linker.MethodSummary
 import com.twitter.classpathverifier.linker.Summarizer
 
-case class Config(
+final case class Config(
     javahome: Path,
     classpath: List[Path],
     entrypoints: List[Reference.Method],
     showPaths: Boolean,
-    reporter: Reporter
+    reporter: Reporter,
+    dotConfig: DotConfig
 ) {
   def addJarEntrypoints(jar: Path): Config = {
     val jarEntrypoints = for {
@@ -66,7 +68,15 @@ case class Config(
 }
 
 object Config {
-  def empty: Config = Config(JavaHome.javahome(), Nil, Nil, showPaths = true, Reporter.newReporter)
+  def empty: Config =
+    Config(
+      javahome = JavaHome.javahome(),
+      classpath = Nil,
+      entrypoints = Nil,
+      showPaths = true,
+      reporter = Reporter.newReporter,
+      dotConfig = DotConfig.empty
+    )
 
   def toClasspath(classpath: String): List[Path] =
     classpath

@@ -35,6 +35,29 @@ final case class Build(
     projects.map { case (k, v) => k -> v.classpath(this) }
   def allClasspath: Classpath =
     Build("synthetic", Project("synthetic").dependsOn(this)).classpath("synthetic")
+  def mainClasspath: List[Path] = {
+    if (projects.contains("main")) classpath("main").full
+    else {
+      throw new IllegalStateException(
+        """|`mainClasspath` requires a build to define a project named `main`.
+           |Ensure that your build includes a project named `main`.""".stripMargin
+      )
+    }
+  }
+  def brokenMainClasspath: List[Path] = {
+    if (projects.contains("v1") && projects.contains("v2") && projects.contains("main")) {
+      val v1Classpath = classpath("v1").full
+      val v2Classpath = classpath("v2").full.filterNot(v1Classpath.contains)
+      val validClasspath = classpath("main").full
+      v2Classpath ++ validClasspath.filterNot(v1Classpath.contains)
+    } else {
+      throw new IllegalStateException(
+        """|`brokenClasspath` requires a build to define at least 3 projects, including `v1`, `v2`, and `main`.
+           |`main` will be compiled against `v1`, and then run with `v2` on the classpath.
+           |Make sure your build includes `v1`, `v2` and `main`.""".stripMargin
+      )
+    }
+  }
 }
 
 object Build {

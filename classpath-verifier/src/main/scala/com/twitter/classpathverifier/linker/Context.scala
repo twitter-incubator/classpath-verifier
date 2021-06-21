@@ -16,14 +16,17 @@
 
 package com.twitter.classpathverifier.linker
 
-import com.twitter.classpathverifier.Config
 import com.twitter.classpathverifier.Reference
+import com.twitter.classpathverifier.config.Config
 import com.twitter.classpathverifier.diagnostics.Reporter
+import com.twitter.classpathverifier.dot.DotBuffer
+import com.twitter.classpathverifier.dot.NoDotBuffer
 
 case class Context(
     parent: Context,
     config: Config,
-    currentMethod: Reference.Method
+    currentMethod: Reference.Method,
+    dot: DotBuffer
 ) {
   def in(ref: Reference.Method): Context =
     copy(parent = this, currentMethod = ref)
@@ -38,7 +41,7 @@ case class Context(
 }
 
 object Context {
-
-  object RootContext extends Context(null, Config.empty, Reference.Method.NoMethod)
-  def init(config: Config): Context = Context(RootContext, config, Reference.Method.NoMethod)
+  object RootContext extends Context(null, Config.empty, Reference.Method.NoMethod, NoDotBuffer)
+  def init(config: Config): Context =
+    Context(RootContext, config, Reference.Method.NoMethod, DotBuffer(config.dotConfig))
 }

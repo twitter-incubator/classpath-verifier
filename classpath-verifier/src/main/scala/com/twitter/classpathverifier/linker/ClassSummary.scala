@@ -115,13 +115,13 @@ object ClassSummary {
       if (isInterface) ClassKind.Interface
       else if (isAbstract) ClassKind.AbstractClass
       else ClassKind.Class
-    ClassSummary(kind, Type.pathToName(visitor.className), parent, interfaces, methods)
+    ClassSummary(kind, Type.pathToName(visitor.fullName), parent, interfaces, methods)
   }
 
   private class Visitor(buffer: Buffer[MethodSummary]) extends ClassVisitor(Opcodes.ASM9) {
 
-    private var myClassName: String = _
-    def className: String = myClassName
+    private var myFullName: String = _
+    def fullName: String = myFullName
 
     override def visit(
         version: Int,
@@ -131,7 +131,7 @@ object ClassSummary {
         superName: String,
         interfaces: Array[String]
     ): Unit = {
-      myClassName = name
+      myFullName = name
       super.visit(version, access, name, signature, superName, interfaces)
     }
 
@@ -146,7 +146,7 @@ object ClassSummary {
       val callback = (deps: List[Dependency]) => {
         val summary =
           MethodSummary(
-            Type.pathToName(myClassName),
+            Type.pathToName(myFullName),
             name,
             Type.pathToName(descriptor),
             deps,

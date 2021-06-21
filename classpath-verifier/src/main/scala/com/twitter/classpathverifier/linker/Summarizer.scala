@@ -24,7 +24,7 @@ import com.twitter.classpathverifier.diagnostics.MissingClassError
 
 trait Summarizer {
   def apply(clazz: Reference.Clazz)(implicit ctx: Context): ClassSummary =
-    apply(clazz.className)
+    apply(clazz.fullClassName)
   def apply(clazz: String)(implicit ctx: Context): ClassSummary
 }
 
@@ -42,18 +42,21 @@ class ClassSummarizer(finder: Finder) extends Summarizer {
 
   private val summaries = new ConcurrentHashMap[String, ClassSummary]()
 
-  override def apply(className: String)(implicit ctx: Context): ClassSummary =
-    summaries.computeIfAbsent(className, summarize) match {
+  override def apply(fullClassName: String)(implicit ctx: Context): ClassSummary =
+    summaries.computeIfAbsent(fullClassName, summarize) match {
       case ClassSummary.Missing =>
-        val error = MissingClassError(Reference.Clazz(className))
+        val missingRef = Reference.Clazz(fullClassName)
+        val error = MissingClassError(missingRef)
         ctx.reporter.report(error)
+        ctx.dot.addDependency(missingRef)
+        ctx.dot.markMissing(missingRef)
         ClassSummary.Missing
       case summary =>
         summary
     }
 
-  private def summarize(className: String): ClassSummary =
-    finder.find(className) match {
+  private def summarize(fullClassName: String): ClassSummary =
+    finder.find(fullClassName) match {
       case None         => ClassSummary.Missing
       case Some(stream) => ClassSummary.collect(stream)
     }

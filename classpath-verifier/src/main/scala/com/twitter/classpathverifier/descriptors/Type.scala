@@ -31,7 +31,7 @@ object Type {
     case object Void extends Primitive
   }
 
-  case class Reference(className: String) extends Type
+  case class Reference(fullName: String) extends Type
   case class Array(tpe: Type) extends Type
 
   def pathToName(path: String): String =

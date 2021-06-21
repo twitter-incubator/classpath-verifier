@@ -20,6 +20,8 @@ import com.twitter.classpathverifier.linker.Constants
 import scopt.Read
 
 sealed trait Reference {
+  def fullClassName: String
+  def packageName: String
   def className: String
   def classRef: Reference.Clazz
   def show: String
@@ -27,18 +29,39 @@ sealed trait Reference {
 
 object Reference {
 
-  case class Clazz(className: String) extends Reference {
+  private def packageName(fullClassName: String): String =
+    fullClassName.lastIndexOf('.') match {
+      case -1  => ""
+      case dot => fullClassName.substring(0, dot)
+    }
+
+  private def className(fullClassName: String): String =
+    packageName(fullClassName) match {
+      case ""  => fullClassName
+      case pkg => fullClassName.substring(pkg.length + 1)
+    }
+
+  case class Clazz(packageName: String, className: String) extends Reference {
+    override def fullClassName: String =
+      if (packageName.isEmpty) className
+      else s"$packageName.$className"
     def classRef: Clazz = this
-    def show: String = className
+    def show: String = fullClassName
+  }
+
+  object Clazz {
+    def apply(fullName: String): Clazz = Clazz(packageName(fullName), className(fullName))
   }
 
   case class Method(
-      className: String,
+      fullClassName: String,
       methodName: String,
       descriptor: String
   ) extends Reference {
-    def classRef: Reference.Clazz = Clazz(className)
-    def show: String = s"$className#$methodName:$descriptor"
+    def packageName: String = Reference.packageName(fullClassName)
+    def className: String = Reference.className(fullClassName)
+    def classRef: Reference.Clazz = Clazz(packageName, className)
+    def show: String = s"$fullClassName#$methodName:$descriptor"
   }
 
   object Method {

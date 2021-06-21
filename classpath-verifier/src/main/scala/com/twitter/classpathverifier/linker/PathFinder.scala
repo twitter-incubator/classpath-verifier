@@ -52,7 +52,7 @@ private class PathFinder(summarize: Summarizer) {
   }
 
   private def dependencies(ref: Reference.Method)(implicit ctx: Context): List[Reference.Method] = {
-    summarize(ref.className)
+    summarize(ref.fullClassName)
       .resolveDep(summarize, MethodDependency.Static(ref))
       .getOrElse(MethodSummary.Empty)
       .dependencies
