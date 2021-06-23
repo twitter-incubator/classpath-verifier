@@ -23,9 +23,9 @@ import com.twitter.classpathverifier.Reference
 import com.twitter.classpathverifier.diagnostics.MissingClassError
 
 trait Summarizer {
-  def apply(clazz: Reference.Clazz)(implicit ctx: Context): ClassSummary =
-    apply(clazz.fullClassName)
-  def apply(clazz: String)(implicit ctx: Context): ClassSummary
+  def apply(clazz: Reference.Clazz)(implicit ctx: Context): ClassSummary
+  def apply(clazz: String)(implicit ctx: Context): ClassSummary =
+    apply(Reference.Clazz(clazz))
 }
 
 object Summarizer {
@@ -39,24 +39,23 @@ object Summarizer {
 
 class ClassSummarizer(finder: Finder) extends Summarizer {
 
-  private val summaries = new ConcurrentHashMap[String, ClassSummary]()
+  private val summaries = new ConcurrentHashMap[Reference.Clazz, ClassSummary]()
 
-  override def apply(fullClassName: String)(implicit ctx: Context): ClassSummary =
-    summaries.computeIfAbsent(fullClassName, summarize) match {
+  override def apply(clazz: Reference.Clazz)(implicit ctx: Context): ClassSummary =
+    summaries.computeIfAbsent(clazz, summarize) match {
       case ClassSummary.Missing =>
-        val missingRef = Reference.Clazz(fullClassName)
-        val error = MissingClassError(missingRef)
+        val error = MissingClassError(clazz)
         ctx.reporter.report(error)
-        ctx.dot.addDependency(missingRef)
-        ctx.dot.markMissing(missingRef)
+        ctx.dot.addDependency(clazz)
+        ctx.dot.markMissing(clazz)
         ClassSummary.Missing
       case summary =>
         summary
     }
 
-  private def summarize(fullClassName: String): ClassSummary =
-    finder.find(fullClassName) match {
+  private def summarize(clazz: Reference.Clazz)(implicit ctx: Context): ClassSummary =
+    finder.find(clazz.fullClassName) match {
       case None         => ClassSummary.Missing
-      case Some(stream) => stream.use(ClassSummary.collect)
+      case Some(stream) => stream.use(ClassSummary.collect(clazz, _))
     }
 }
