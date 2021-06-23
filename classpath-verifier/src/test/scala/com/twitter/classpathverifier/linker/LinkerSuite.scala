@@ -16,17 +16,21 @@
 
 package com.twitter.classpathverifier.linker
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 import com.twitter.classpathverifier.BuildInfo
 import com.twitter.classpathverifier.Reference
 import com.twitter.classpathverifier.config.Config
+import com.twitter.classpathverifier.diagnostics.ClassfileVersionError
 import com.twitter.classpathverifier.diagnostics.LinkerError
 import com.twitter.classpathverifier.diagnostics.MissingClassError
 import com.twitter.classpathverifier.diagnostics.MissingMethodError
 import com.twitter.classpathverifier.testutil.Build
+import com.twitter.classpathverifier.testutil.IOUtil
 import com.twitter.classpathverifier.testutil.Project
 import com.twitter.classpathverifier.testutil.TestBuilds
+import org.objectweb.asm.Opcodes
 
 class LinkerSuite extends BaseLinkerSuite {
 
@@ -160,6 +164,37 @@ class LinkerSuite extends BaseLinkerSuite {
     if (BuildInfo.scalaBinaryVersion == "3") "dotty.tools.dotc.Main.main(args)"
     else "scala.tools.nsc.Main.main(args)"
   )
+
+  test("Detects classes that cannot be read by this JDK") {
+    val maxAsmVersion: Byte = Opcodes.V16
+    implicit val ctx = Context.init(Config.empty)
+
+    assume(ctx.config.javaMajorApiVersion < maxAsmVersion, "Latest Java version supported by ASM.")
+
+    val arrayCloneClassfile =
+      TestBuilds.arrayClone.classpath("root").classesDir.resolve("test").resolve("ArrayClone.class")
+    assert(Files.isRegularFile(arrayCloneClassfile))
+    val bytes = Files.readAllBytes(arrayCloneClassfile)
+
+    // Set the major version to the latest version supported by ASM, which is assumed to be newer
+    // than what the curent JVM supports, then write the "broken" classfile.
+    bytes(6) = 0
+    bytes(7) = maxAsmVersion
+
+    IOUtil.withTempDirectory { temp =>
+      val newClassfile = temp.resolve("test").resolve("ArrayClone.class")
+      Files.createDirectories(newClassfile.getParent)
+      Files.write(newClassfile, bytes)
+      for {
+        finder <- Finder(temp :: Nil)
+        summarizer = new ClassSummarizer(finder)
+      } summarizer("test.ArrayClone")
+
+      val expectedErrors =
+        ClassfileVersionError(Reference.Clazz("test.ArrayClone"), maxAsmVersion) :: Nil
+      assertEquals(ctx.reporter.errors, expectedErrors)
+    }
+  }
 
   private def changeIntroducesErrors(
       build: Build,

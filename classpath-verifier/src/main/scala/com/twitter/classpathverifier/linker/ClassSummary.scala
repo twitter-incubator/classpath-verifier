@@ -21,8 +21,10 @@ import java.io.InputStream
 import scala.collection.compat.immutable.LazyList
 import scala.collection.mutable.Buffer
 
+import com.twitter.classpathverifier.Reference
 import com.twitter.classpathverifier.descriptors.Parser
 import com.twitter.classpathverifier.descriptors.Type
+import com.twitter.classpathverifier.diagnostics.ClassfileVersionError
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
@@ -101,21 +103,29 @@ object ClassSummary {
     }
   }
 
-  def collect(stream: InputStream): ClassSummary = {
+  def collect(ref: Reference.Clazz, stream: InputStream)(implicit ctx: Context): ClassSummary = {
     val buffer = Buffer.empty[MethodSummary]
     val visitor = new Visitor(buffer)
     val reader = new ClassReader(stream)
-    reader.accept(visitor, 0)
-    val parent = Option(Type.pathToName(reader.getSuperName()))
-    val interfaces = reader.getInterfaces().toList.map(Type.pathToName)
-    val methods = buffer.toList
-    val isInterface = (reader.getAccess() & Opcodes.ACC_INTERFACE) != 0
-    val isAbstract = (reader.getAccess() & Opcodes.ACC_ABSTRACT) != 0
-    val kind =
-      if (isInterface) ClassKind.Interface
-      else if (isAbstract) ClassKind.AbstractClass
-      else ClassKind.Class
-    ClassSummary(kind, Type.pathToName(visitor.fullName), parent, interfaces, methods)
+    val majorVersion = reader.readUnsignedShort(6)
+
+    if (majorVersion <= ctx.config.javaMajorApiVersion) {
+      reader.accept(visitor, 0)
+      val parent = Option(Type.pathToName(reader.getSuperName()))
+      val interfaces = reader.getInterfaces().toList.map(Type.pathToName)
+      val methods = buffer.toList
+      val isInterface = (reader.getAccess() & Opcodes.ACC_INTERFACE) != 0
+      val isAbstract = (reader.getAccess() & Opcodes.ACC_ABSTRACT) != 0
+      val kind =
+        if (isInterface) ClassKind.Interface
+        else if (isAbstract) ClassKind.AbstractClass
+        else ClassKind.Class
+      ClassSummary(kind, Type.pathToName(visitor.fullName), parent, interfaces, methods)
+    } else {
+      val error = ClassfileVersionError(ref, majorVersion)
+      ctx.reporter.report(error)
+      ClassSummary.Missing
+    }
   }
 
   private class Visitor(buffer: Buffer[MethodSummary]) extends ClassVisitor(Opcodes.ASM9) {

@@ -22,6 +22,7 @@ import java.nio.file.Paths
 
 import com.twitter.classpathverifier.Reference
 import com.twitter.classpathverifier.diagnostics.Reporter
+import com.twitter.classpathverifier.jdk.ClassfileVersion
 import com.twitter.classpathverifier.jdk.JavaHome
 import com.twitter.classpathverifier.linker.Constants
 import com.twitter.classpathverifier.linker.Context
@@ -57,6 +58,10 @@ final case class Config(
 
   lazy val fullClasspath: List[Path] =
     JavaHome.jreClasspathEntries(javahome) ::: classpath
+
+  lazy val javaVersion: Option[Int] = JavaHome.javaVersionFromJavaHome(javahome)
+
+  lazy val javaMajorApiVersion: Int = ClassfileVersion.majorFromJavaHome(javahome)
 
   private def allMethods(jar: Path): List[MethodSummary] = {
     val ctx = Context.init(this)

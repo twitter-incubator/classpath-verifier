@@ -33,6 +33,28 @@ private object LinkerError {
     }
 }
 
+case class ClassfileVersionError(
+    reference: Reference.Clazz,
+    path: List[Reference.Method],
+    actualMajorApiVersion: Int,
+    javaMajorApiVersion: Int
+) extends LinkerError {
+  override def show: String =
+    s"class '${reference.show}' has been compiled by a more recent version of the Java Runtime (major class file version ${actualMajorApiVersion}), expected major class file version up to ${javaMajorApiVersion}."
+}
+
+object ClassfileVersionError {
+  def apply(reference: Reference.Clazz, actualMajorApiVersion: Int)(implicit
+      ctx: Context
+  ): ClassfileVersionError =
+    ClassfileVersionError(
+      reference,
+      ctx.path,
+      actualMajorApiVersion,
+      ctx.config.javaMajorApiVersion
+    )
+}
+
 case class MissingClassError(reference: Reference.Clazz, path: List[Reference.Method])
     extends LinkerError {
   override def show: String =
