@@ -43,10 +43,12 @@ class PathFinderSuite extends BaseLinkerSuite {
     val end = expected.last.ref
     test(s"path: ${start.show} -> ${end.show}") {
       val jreClasses = JavaHome.jreClasspathEntries(JavaHome.javahome())
-      val summarizer = new ClassSummarizer(jreClasses ::: classpath)
-      val obtainedPath = PathFinder.path(summarizer, start, end)
-      val expectedPath = if (expected.isEmpty) None else Some(expected.map(_.ref))
-      assertEquals(obtainedPath, expectedPath)
+      Finder(jreClasses ::: classpath).use { finder =>
+        val summarizer = new ClassSummarizer(finder)
+        val obtainedPath = PathFinder.path(summarizer, start, end)
+        val expectedPath = if (expected.isEmpty) None else Some(expected.map(_.ref))
+        assertEquals(obtainedPath, expectedPath)
+      }
     }
   }
 }

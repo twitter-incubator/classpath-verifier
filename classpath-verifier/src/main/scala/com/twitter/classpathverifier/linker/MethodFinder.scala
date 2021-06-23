@@ -28,19 +28,19 @@ import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 
 class MethodFinder(classpath: List[Path]) {
-  val classFinder = new ClassFinder(classpath)
+  private val classFinder = new ClassFinder(classpath)
 
   def find(entrypoint: Reference.Method): Option[MethodVisitor] =
     classFinder
       .find(entrypoint.fullClassName)
-      .map { clazz =>
+      .map(_.use { clazz =>
         val reader = new ClassReader(clazz)
         val descriptor = Type.nameToPath(entrypoint.descriptor)
         val visitor =
           new MethodFinderVisitor(entrypoint.methodName, descriptor)
         reader.accept(visitor, 0)
         visitor.results
-      }
+      })
       .getOrElse(Nil) match {
       case Nil =>
         None

@@ -26,7 +26,7 @@ class ClassFinderSuite extends BaseLinkerSuite {
     classOf[Map[_, _]]
   ).map(_.getName)
 
-  val finder = new ClassFinder(Resolution.scalaLibrary)
+  private val finder = new ClassFinder(Resolution.scalaLibrary)
 
   classesToFind.foreach { name =>
     test(s"find $name") {

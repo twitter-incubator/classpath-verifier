@@ -172,12 +172,13 @@ class ClassSummarySuite extends BaseLinkerSuite with Summary {
       implicit val ctx: Context = failOnError
       val expectedSummary = summary(className, kind, parent, interfaces)(builder)
       val classpath = build.allClasspath.full
-      val summarizer = new ClassSummarizer(classpath)
-      val obtainedSummary =
-        summarizer(className)
+      Finder(classpath).map(new ClassSummarizer(_)).use { summarizer =>
+        val obtainedSummary =
+          summarizer(className)
 
-      if (BuildInfo.scalaBinaryVersion != "3" || !disableOnScala3) {
-        assertEquals(comparableSummary(obtainedSummary), comparableSummary(expectedSummary))
+        if (BuildInfo.scalaBinaryVersion != "3" || !disableOnScala3) {
+          assertEquals(comparableSummary(obtainedSummary), comparableSummary(expectedSummary))
+        }
       }
     }
   }

@@ -22,6 +22,7 @@ import com.twitter.classpathverifier.jdk.JavaHome
 import com.twitter.classpathverifier.linker.BaseLinkerSuite
 import com.twitter.classpathverifier.linker.ClassSummarizer
 import com.twitter.classpathverifier.linker.Context
+import com.twitter.classpathverifier.linker.Finder
 import com.twitter.classpathverifier.linker.Summarizer
 import com.twitter.classpathverifier.testutil.Build
 import com.twitter.classpathverifier.testutil.TestBuilds
@@ -85,9 +86,10 @@ class DescriptorSuite extends BaseLinkerSuite {
   private def withDescriptors(a: String, b: String, classpath: List[Path])(
       op: (Descriptor, Descriptor, Summarizer) => Unit
   ): Unit = {
-    val summarize = new ClassSummarizer(classpath)
-    val descA = Parser.parse(a)
-    val descB = Parser.parse(b)
-    op(descA, descB, summarize)
+    Finder(classpath).map(new ClassSummarizer(_)).use { summarize =>
+      val descA = Parser.parse(a)
+      val descB = Parser.parse(b)
+      op(descA, descB, summarize)
+    }
   }
 }
