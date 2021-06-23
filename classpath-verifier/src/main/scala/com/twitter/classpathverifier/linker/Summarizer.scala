@@ -30,15 +30,14 @@ trait Summarizer {
 
 object Summarizer {
   def summarizeJar(jar: Path)(implicit ctx: Context): List[ClassSummary] = {
-    val finder = new ClassFinder(jar :: Nil)
-    val summarizer = new ClassSummarizer(finder)
-    finder.allClasses().map(summarizer(_))
+    Finder(jar :: Nil).use { finder =>
+      val summarizer = new ClassSummarizer(finder)
+      finder.allClasses().map(summarizer(_))
+    }
   }
 }
 
 class ClassSummarizer(finder: Finder) extends Summarizer {
-
-  def this(classpath: List[Path]) = this(new ClassFinder(classpath))
 
   private val summaries = new ConcurrentHashMap[String, ClassSummary]()
 
@@ -58,6 +57,6 @@ class ClassSummarizer(finder: Finder) extends Summarizer {
   private def summarize(fullClassName: String): ClassSummary =
     finder.find(fullClassName) match {
       case None         => ClassSummary.Missing
-      case Some(stream) => ClassSummary.collect(stream)
+      case Some(stream) => stream.use(ClassSummary.collect)
     }
 }

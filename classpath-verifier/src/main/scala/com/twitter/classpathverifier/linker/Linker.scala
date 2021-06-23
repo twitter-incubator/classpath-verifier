@@ -35,13 +35,14 @@ object Linker {
 
   def verify(ctx: Context): Unit = {
     val entrypoints = ctx.config.entrypoints
-    val classpath = ctx.config.fullClasspath
-    val summarizer = new ClassSummarizer(classpath)
-    val linker = new Linker(summarizer)
-    ctx.config.entrypoints.foreach { entrypoint =>
-      linker.verify(entrypoint, ctx)
+    Finder(ctx.config.fullClasspath).use { finder =>
+      val summarizer = new ClassSummarizer(finder)
+      val linker = new Linker(summarizer)
+      ctx.config.entrypoints.foreach { entrypoint =>
+        linker.verify(entrypoint, ctx)
+      }
+      ctx.dot.writeGraph()
     }
-    ctx.dot.writeGraph()
   }
 
 }
