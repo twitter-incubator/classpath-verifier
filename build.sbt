@@ -6,6 +6,8 @@ inThisBuild(
   Seq(
     licenses += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0")),
     organization := "com.twitter",
+    organizationName := "Twitter, Inc.",
+    startYear := Some(2021),
     homepage := Some(url("https://github.com/twitter-incubator/classpath-verifier")),
     developers := List(
       Developer(

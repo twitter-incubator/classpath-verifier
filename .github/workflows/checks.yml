@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: olafurpg/setup-scala@v10
-      - run: sbt "scalafix --check" "test:scalafix --check"
+      - run: sbt "scalafix --check" "Test / scalafix --check"
   scalafmt:
     name: Scalafmt
     runs-on: ubuntu-latest
@@ -17,3 +17,10 @@ jobs:
       - uses: actions/checkout@v2
       - uses: olafurpg/setup-scala@v10
       - run: ./bin/scalafmt --check
+  headers:
+    name: Copyright headers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: olafurpg/setup-scala@v10
+      - run: sbt "+ headerCheck" "+ Test / headerCheck"
