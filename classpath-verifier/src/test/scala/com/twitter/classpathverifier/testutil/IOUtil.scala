@@ -24,6 +24,13 @@ import java.nio.file.SimpleFileVisitor
 import java.nio.file.attribute.BasicFileAttributes
 
 object IOUtil {
+
+  def withTempFile[T](suffix: String)(op: Path => T): T = {
+    val temp = Files.createTempFile(null, suffix)
+    try op(temp)
+    finally Files.delete(temp)
+  }
+
   def withTempDirectory[T](op: Path => T): T = {
     val temp = Files.createTempDirectory(null)
     try op(temp)

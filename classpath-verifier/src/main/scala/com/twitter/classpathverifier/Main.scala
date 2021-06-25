@@ -58,10 +58,15 @@ object Main {
         .action(onConfig((v, c) => c.addJarEntrypoints(Paths.get(v))))
         .text("JARs to fully check"),
       builder
-        .opt[String]('m', "main")
+        .opt[String]("discover-mains")
         .unbounded()
         .action(onConfig((v, c) => c.addMains(Paths.get(v))))
-        .text("JARs whose main methods to check"),
+        .text("JARs whose main methods to discover and check"),
+      builder
+        .opt[String]("entrypoint-from-manifest")
+        .unbounded()
+        .action(onConfig((v, c) => c.addMainFromManifest(Paths.get(v))))
+        .text("JARs whose manifest to read to discover the entrypoints"),
       builder
         .opt[Boolean]('p', "path")
         .action(onConfig((v, c) => c.copy(showPaths = v)))
