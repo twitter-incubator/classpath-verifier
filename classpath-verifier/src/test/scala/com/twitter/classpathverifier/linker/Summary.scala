@@ -59,13 +59,30 @@ trait Summary {
         name,
         descriptor,
         dependencies.toList,
-        isAbstract = false
+        isAbstract = false,
+        isStatic = false
       )
       this
     }
 
     def abstractMeth(name: String, descriptor: String): ClassSummaryBuilder = {
-      buffer += MethodSummary(className, name, descriptor, Nil, isAbstract = true)
+      buffer += MethodSummary(className, name, descriptor, Nil, isAbstract = true, isStatic = false)
+      this
+    }
+
+    def staticMeth(
+        name: String,
+        descriptor: String,
+        dependencies: Dependency*
+    ): ClassSummaryBuilder = {
+      buffer += MethodSummary(
+        className,
+        name,
+        descriptor,
+        dependencies.toList,
+        isAbstract = false,
+        isStatic = true
+      )
       this
     }
 
@@ -78,6 +95,7 @@ trait Summary {
           ClassDependency(Reference.Clazz(parent)),
           MethodDependency.Static(Reference.Method(parent, "<init>", "()V"))
         ),
+        false,
         false
       )
       this
@@ -94,13 +112,14 @@ trait Summary {
           ClassDependency(Reference.Clazz(s"${className}")),
           methDep("<init>")
         ),
-        false
+        false,
+        true
       )
       this
     }
 
     def deserializeLambda(lambda: String): ClassSummaryBuilder =
-      meth(
+      staticMeth(
         "$deserializeLambda$",
         "(Ljava.lang.invoke.SerializedLambda;)Ljava.lang.Object;",
         MethodDependency.Dynamic(

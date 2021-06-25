@@ -153,6 +153,7 @@ object ClassSummary {
         exceptions: Array[String]
     ): MethodVisitor = {
       val isAbstract = (access & Opcodes.ACC_ABSTRACT) != 0
+      val isStatic = (access & Opcodes.ACC_STATIC) != 0
       val callback = (deps: List[Dependency]) => {
         val summary =
           MethodSummary(
@@ -160,7 +161,8 @@ object ClassSummary {
             name,
             Type.pathToName(descriptor),
             deps,
-            isAbstract
+            isAbstract,
+            isStatic
           )
         buffer += summary
         ()

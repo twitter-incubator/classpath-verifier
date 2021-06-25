@@ -60,7 +60,7 @@ class ClassSummarySuite extends BaseLinkerSuite with Summary {
 
   testSummary("test.ValidObject$", TestBuilds.valid, disableOnScala3 = true) { b =>
     b.obj
-      .meth("$anonfun$main$1", "([Ljava.lang.String;)I")
+      .staticMeth("$anonfun$main$1", "([Ljava.lang.String;)I")
       .deserializeLambda("$anonfun$main$1")
       .main(
         methDep("scala.Predef$#println:(Ljava.lang.Object;)V"),
@@ -136,7 +136,7 @@ class ClassSummarySuite extends BaseLinkerSuite with Summary {
 
   testSummary("test.Lambda", TestBuilds.lambda, disableOnScala3 = true) { b =>
     b.emptyCtor
-      .meth(
+      .staticMeth(
         "$anonfun$main$1",
         "(Ljava.lang.String;)Lcats.data.Validated$Valid;",
         methDep("cats.data.Validated$Valid#<init>:(Ljava.lang.Object;)V"),

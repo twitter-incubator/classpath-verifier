@@ -17,6 +17,7 @@
 package com.twitter.classpathverifier.config
 
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -24,10 +25,8 @@ import com.twitter.classpathverifier.Reference
 import com.twitter.classpathverifier.diagnostics.Reporter
 import com.twitter.classpathverifier.jdk.ClassfileVersion
 import com.twitter.classpathverifier.jdk.JavaHome
-import com.twitter.classpathverifier.linker.Constants
 import com.twitter.classpathverifier.linker.Context
-import com.twitter.classpathverifier.linker.MethodSummary
-import com.twitter.classpathverifier.linker.Summarizer
+import com.twitter.classpathverifier.linker.Discovery
 
 final case class Config(
     javahome: Path,
@@ -37,23 +36,27 @@ final case class Config(
     reporter: Reporter,
     dotConfig: DotConfig
 ) {
-  def addJarEntrypoints(jar: Path): Config = {
-    val jarEntrypoints = for {
-      method <- allMethods(jar)
-    } yield method.ref
+  def addJarEntrypoints(jar: Path): Config =
+    Discovery.allRefs(jar)(Context.init(this)) match {
+      case Nil  => this
+      case refs => copy(entrypoints = entrypoints ::: refs)
+    }
 
-    copy(entrypoints = entrypoints ::: jarEntrypoints)
-  }
+  def addMains(jar: Path): Config =
+    Discovery.allMains(jar)(Context.init(this)) match {
+      case Nil  => this
+      case refs => copy(entrypoints = entrypoints ::: refs)
+    }
 
-  def addMains(jar: Path): Config = {
-    def isMain(method: MethodSummary): Boolean =
-      method.methodName == Constants.MainMethodName && method.descriptor == Constants.MainMethodDescriptor
-    val mains = for {
-      method <- allMethods(jar)
-      if isMain(method)
-    } yield method.ref
+  def addMainFromManifest(jar: Path): Config = {
+    if (!Files.isReadable(jar)) {
+      throw new IllegalArgumentException(s"Cannot read: '$jar'")
+    }
 
-    copy(entrypoints = entrypoints ::: mains)
+    Discovery.mainFromManifest(jar) match {
+      case None      => this
+      case Some(ref) => copy(entrypoints = entrypoints :+ ref)
+    }
   }
 
   lazy val fullClasspath: List[Path] =
@@ -62,14 +65,6 @@ final case class Config(
   lazy val javaVersion: Option[Int] = JavaHome.javaVersionFromJavaHome(javahome)
 
   lazy val javaMajorApiVersion: Int = ClassfileVersion.majorFromJavaHome(javahome)
-
-  private def allMethods(jar: Path): List[MethodSummary] = {
-    val ctx = Context.init(this)
-    for {
-      summary <- Summarizer.summarizeJar(jar)(ctx)
-      method <- summary.methods
-    } yield method
-  }
 }
 
 object Config {
