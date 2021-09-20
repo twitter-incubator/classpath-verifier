@@ -59,8 +59,19 @@ final case class Config(
     }
   }
 
-  lazy val fullClasspath: List[Path] =
-    JavaHome.jreClasspathEntries(javahome) ::: classpath
+  lazy val fullClasspath: List[Path] = {
+    val classpathBase = JavaHome.jreClasspathEntries(javahome) ::: classpath
+    val seenJars = collection.mutable.Set.empty[Path]
+    def processJar(jar: Path): List[Path] = {
+      if (Files.isDirectory(jar)) jar :: Nil
+      else {
+        seenJars.add(jar)
+        val discovered = Discovery.classpathEntriesFromManifest(jar).filter(seenJars.add)
+        jar :: discovered.flatMap(processJar)
+      }
+    }
+    classpathBase.flatMap(processJar)
+  }
 
   lazy val javaVersion: Option[Int] = JavaHome.javaVersionFromJavaHome(javahome)
 
