@@ -16,10 +16,14 @@
 
 package com.twitter.classpathverifier.linker
 
+import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.jar.Attributes
-import java.util.jar.JarInputStream
+import java.util.jar.JarFile
+
+import scala.util.control.NonFatal
 
 import com.twitter.classpathverifier.Reference
 import com.twitter.classpathverifier.io.Managed
@@ -27,13 +31,31 @@ import com.twitter.classpathverifier.io.Managed
 object Discovery {
 
   def mainFromManifest(jar: Path): Option[Reference.Method] =
-    Managed(new JarInputStream(Files.newInputStream(jar))).use { stream =>
-      for {
-        manifest <- Option(stream.getManifest())
-        attributes = manifest.getMainAttributes()
-        main <- Option(attributes.getValue(Attributes.Name.MAIN_CLASS))
-      } yield Reference.Method(main, Constants.MainMethodName, Constants.MainMethodDescriptor)
+    if (!Files.isReadable(jar)) None
+    else {
+      Managed(new JarFile(jar.toFile)).use { jarFile =>
+        for {
+          manifest <- Option(jarFile.getManifest())
+          attributes = manifest.getMainAttributes()
+          main <- Option(attributes.getValue(Attributes.Name.MAIN_CLASS))
+        } yield Reference.Method(main, Constants.MainMethodName, Constants.MainMethodDescriptor)
+      }
     }
+
+  def classpathEntriesFromManifest(jar: Path): List[Path] = {
+    if (!Files.isReadable(jar)) Nil
+    else {
+      Managed(new JarFile(jar.toFile))
+        .use { jarFile =>
+          for {
+            manifest <- Option(jarFile.getManifest())
+            attributes = manifest.getMainAttributes()
+            classpath <- Option(attributes.getValue(Attributes.Name.CLASS_PATH))
+          } yield parseClasspath(jar, classpath)
+        }
+        .getOrElse(Nil)
+    }
+  }
 
   def allMains(jar: Path)(implicit ctx: Context): List[Reference.Method] =
     for {
@@ -56,4 +78,16 @@ object Discovery {
       summary <- Summarizer.summarizeJar(jar)(ctx)
       method <- summary.methods
     } yield method
+
+  private def parseClasspath(jar: Path, classpath: String): List[Path] = {
+    val base = jar.toUri()
+    classpath.split(" ").toList.map(_.trim).filter(_.nonEmpty).flatMap { entry =>
+      try {
+        val entryUri = new URI(entry)
+        Paths.get(base.resolve(entryUri)) :: Nil
+      } catch {
+        case NonFatal(_) => Nil
+      }
+    }
+  }
 }
