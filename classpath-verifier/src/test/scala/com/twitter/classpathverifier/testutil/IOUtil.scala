@@ -50,6 +50,15 @@ object IOUtil {
       mainClass: Option[String],
       classpath: Option[List[String]]
   ): Unit = {
+    buildJarIn(jar, build.allClasspath.full, mainClass, classpath)
+  }
+
+  def buildJarIn(
+      jar: Path,
+      classes: List[Path],
+      mainClass: Option[String],
+      classpath: Option[List[String]]
+  ): Unit = {
     val manifest = new Manifest()
     val attributes = manifest.getMainAttributes()
     attributes.put(Attributes.Name.MANIFEST_VERSION, "1.0")
@@ -78,7 +87,7 @@ object IOUtil {
         manifest
       )
     ).use { jos =>
-      build.allClasspath.full.foreach(addClassesToJar(_, jos))
+      classes.foreach(addClassesToJar(_, jos))
     }
   }
 
