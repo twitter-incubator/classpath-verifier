@@ -196,6 +196,27 @@ class LinkerSuite extends BaseLinkerSuite {
     }
   }
 
+  test("find classes in composite jar") {
+    IOUtil.withTempDirectory { tmp =>
+      val v1Jar = tmp.resolve("v1.jar")
+      val mainJar = tmp.resolve("main.jar")
+      IOUtil.buildJarIn(
+        v1Jar,
+        TestBuilds.castValueType.classpath("v1").classesDir :: Nil,
+        None,
+        None
+      )
+      IOUtil.buildJarIn(
+        mainJar,
+        TestBuilds.castValueType.classpath("main").classesDir :: Nil,
+        None,
+        Some("v1.jar" :: Nil)
+      )
+
+      assertEquals(linkErrors("test.Main$", mainJar :: Nil), Nil)
+    }
+  }
+
   private def changeIntroducesErrors(
       build: Build,
       entrypoint: String,

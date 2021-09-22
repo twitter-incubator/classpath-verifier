@@ -304,6 +304,7 @@ object TestBuilds {
                        |import test.CastClass
                        |object Main {
                        |  def typeCast(c: Object): Unit = { c.asInstanceOf[CastClass]; () }
+                       |  def main(args: Array[String]): Unit = typeCast(args)
                        |}""".stripMargin)
       .dependsOn("v1")
   )
