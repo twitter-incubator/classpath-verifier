@@ -2,17 +2,37 @@
 
 We'd love to get patches from you!
 
-## Getting Started
-
-**TODO:** If you have 'good-first-issue' or 'easy' labels for newcomers, mention them here.
-
-## Building dependencies
-
-**TODO**
-
 ## Building the Project
 
-**TODO**
+You'll need to install both git and sbt on your machine to build
+classpath-verifier.
+
+In order to build classpath-verifier, open an sbt shell:
+
+```
+$ sbt
+# compile the project:
+> compile
+# run locally built:
+> classpath-verifier/run
+[info] running com.twitter.classpathverifier.Main
+Error: Missing option --classpath
+classpath-verifier 0.1
+(...)
+```
+
+Since classpath-verifier is not published anywhere at the moment, the easiest
+way to run it outside of sbt is to publish classpath-verifier on your machine,
+then run it via [coursier](https://get-coursier.io):
+
+```
+$ sbt
+> classpath-verifier/version
+... # copy this result
+> publishLocal
+> exit
+$ cs launch com.twitter:classpath-verifier_2.13:<paste version>
+```
 
 ## Workflow
 
@@ -24,11 +44,34 @@ the project.
 
 ## Testing
 
-**TODO**
+To run the tests, open an sbt shell
+
+```
+$ sbt
+# run all the tests:
+> test
+# run a single test suite:
+> testOnly com.twitter.classpathverifier.linker.LinkerSuite
+# run a single test case:
+> testOnly com.twitter.classpathverifier.linker.LinkerSuite -- "*test name*"
+# run all the tests with all Scala versions:
+> + test
+```
 
 ## Style
 
-**TODO:** Code style guide
+Code style is enforced with scalafmt and scalafix. To format your sources, run
+`scalafmtAll` and `scalafixAll` in sbt:
+
+```
+$ sbt
+> scalafmtAll
+[info] Formatting 8 Scala sources...
+[info] Formatting 7 Scala sources...
+> scalafixAll
+[info] compiling 1 Scala source to /home/you/classpath-verifier/classpath-verifier/target/scala-2.13/classes ...
+[info] Running scalafix on 1 Scala sources (incremental)
+```
 
 ## Issues
 
