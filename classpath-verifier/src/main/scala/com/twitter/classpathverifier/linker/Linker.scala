@@ -57,6 +57,9 @@ private class Linker(summarizer: Summarizer) {
 
   def verify(entrypoint: Reference.Method, entryCtx: Context): Unit = {
     toCheck.add(MethodDependency.Static(entrypoint) -> entryCtx)
+    val classRef = entrypoint.fullClassName
+    val classSummary = summarizer(classRef)(entryCtx)
+    registerClassDeps(classSummary)(entryCtx)
     while (!toCheck.isEmpty() || !toCheckInSubclassesOf.isEmpty()) {
       while (!toCheck.isEmpty()) {
         val (current, ctx) = toCheck.poll()
@@ -76,6 +79,15 @@ private class Linker(summarizer: Summarizer) {
     }
   }
 
+  private val ctorNames = Set(Constants.InitMethod, Constants.ClassInitMethod)
+  private def registerClassDeps(summary: ClassSummary)(implicit ctx: Context): Unit = {
+    // any time you use a class, you'd likely need to initialize it
+    val ctors = summary.methods.filter { method => ctorNames(method.methodName) }
+    ctors.foreach { m =>
+      toCheck.add(MethodDependency.Static(m.ref) -> ctx)
+    }
+  }
+
   private def registerAsSubclass(summary: ClassSummary): Unit = {
     def register(parent: String, name: String): Unit = {
       val subclassesOfParent =
@@ -92,6 +104,7 @@ private class Linker(summarizer: Summarizer) {
   private def doVerify(dep: Dependency)(implicit ctx: Context): Unit = {
     val classRef = dep.ref.classRef
     val classSummary = summarizer(classRef)
+    registerClassDeps(classSummary)
     dep match {
       case dep: MethodDependency => verifyDep(classSummary, dep)
       case dep: ClassDependency =>

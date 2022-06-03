@@ -89,11 +89,11 @@ trait Summary {
     def emptyCtor: ClassSummaryBuilder = {
       buffer += MethodSummary(
         className,
-        "<init>",
+        Constants.InitMethod,
         "()V",
         List(
           ClassDependency(Reference.Clazz(parent)),
-          MethodDependency.Static(Reference.Method(parent, "<init>", "()V"))
+          MethodDependency.Static(Reference.Method(parent, Constants.InitMethod, "()V"))
         ),
         false,
         false
@@ -105,12 +105,12 @@ trait Summary {
       emptyCtor
       buffer += MethodSummary(
         className,
-        "<clinit>",
+        Constants.ClassInitMethod,
         "()V",
         List(
           ClassDependency(Reference.Clazz(s"${className}")),
           ClassDependency(Reference.Clazz(s"${className}")),
-          methDep("<init>")
+          methDep(Constants.InitMethod)
         ),
         false,
         true
