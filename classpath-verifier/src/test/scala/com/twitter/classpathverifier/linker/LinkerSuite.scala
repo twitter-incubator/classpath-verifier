@@ -169,6 +169,20 @@ class LinkerSuite extends BaseLinkerSuite {
     )
   )
 
+  changeIntroducesErrors(
+    TestBuilds.missingParentClassInValInModule,
+    "test.Main$#main:()V",
+    List(
+      MissingClassError(
+        classRef("test.Parent"),
+        List(
+          Reference.Method("test.DataModule$", "<clinit>", "()V"),
+          Reference.Method("test.Main$", "<clinit>", "()V"),
+        )
+      ),
+    )
+  )
+
   linksInBuild(TestBuilds.fastpass, "scala.meta.fastpass.Fastpass.main(args)")
   linksInBuild(
     TestBuilds.scalac,

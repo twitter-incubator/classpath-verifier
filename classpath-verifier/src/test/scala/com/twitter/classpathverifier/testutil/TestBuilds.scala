@@ -279,6 +279,30 @@ object TestBuilds {
       .dependsOn("v1")
   )
 
+  val missingParentClassInValInModule: Build = Build(
+    "missing-parent",
+    Project("v1")
+      .withSource("""|package test
+                     |abstract class Parent""".stripMargin),
+    Project("v2")
+      .withSource("""|package test
+                     |abstract class NotParent""".stripMargin)
+      .dependsOn("v1"),
+    Project("main")
+      .withSource("""|package test
+                     |class Clazz extends Parent""".stripMargin)
+      .withSource("""|package test
+                     |object DataModule {
+                     |  val direct: Unit = { new Clazz; () }
+                     |}
+                     |object Main {
+                     |  val data: Unit = { process(DataModule) }
+                     |  def process[A](a: A): Unit = ()
+                     |  def main(): Unit = ()
+                     |}""".stripMargin)
+      .dependsOn("v1")
+  )
+
   val fastpass: Build = Build(
     "fastpass",
     Project("fastpass")

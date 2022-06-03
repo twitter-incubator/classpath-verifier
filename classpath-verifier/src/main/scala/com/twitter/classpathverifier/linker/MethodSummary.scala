@@ -96,6 +96,23 @@ object MethodSummary {
       dependencies += MethodDependency.Static(reference)
     }
 
+    override def visitFieldInsn(
+        opcode: Int,
+        rawOwner: String,
+        name: String,
+        descriptor: String
+    ): Unit = {
+      super.visitFieldInsn(opcode, rawOwner, name, descriptor)
+      val owner = actualOwner(rawOwner)
+      owner.split("""\.""").headOption match {
+        case None                                         => ()
+        case Some("scala") | Some("java") | Some("javax") => ()
+        case Some(_) =>
+          val clazzReference = Reference.Clazz(owner)
+          dependencies += ClassDependency(clazzReference)
+      }
+    }
+
     override def visitTypeInsn(
         opcode: Int,
         classType: String
