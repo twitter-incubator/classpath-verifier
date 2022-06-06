@@ -164,7 +164,7 @@ class LinkerSuite extends BaseLinkerSuite {
     List(
       MissingClassError(
         classRef("test.Parent"),
-        Reference.Method("test.Main$", "<clinit>", "()V") :: Nil
+        Reference.Method("test.Main$", "<init>", "()V") :: Nil
       ),
     )
   )
@@ -176,8 +176,8 @@ class LinkerSuite extends BaseLinkerSuite {
       MissingClassError(
         classRef("test.Parent"),
         List(
-          Reference.Method("test.DataModule$", "<clinit>", "()V"),
-          Reference.Method("test.Main$", "<clinit>", "()V"),
+          Reference.Method("test.DataModule$", "<init>", "()V"),
+          Reference.Method("test.Main$", "<init>", "()V"),
         )
       ),
     )
@@ -273,7 +273,16 @@ class LinkerSuite extends BaseLinkerSuite {
     val config = Config.empty.copy(classpath = classpath, entrypoints = reference :: Nil)
     val ctx = Context.init(config)
     Linker.verify(ctx)
-    ctx.reporter.errors
+
+    // Rename <clinit> to <init> since you get one or the other
+    ctx.reporter.errors.map {
+      case MissingClassError(ref, path) =>
+        MissingClassError(ref, path.map {
+          case Reference.Method(clazz, "<clinit>", desc) => Reference.Method(clazz, "<init>", desc)
+          case method => method
+        })
+      case error => error
+    }
   }
 
 }

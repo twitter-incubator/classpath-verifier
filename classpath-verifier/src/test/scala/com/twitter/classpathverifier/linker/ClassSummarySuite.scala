@@ -63,20 +63,21 @@ class ClassSummarySuite extends BaseLinkerSuite with Summary {
       .staticMeth("$anonfun$main$1", "([Ljava.lang.String;)I")
       .deserializeLambda("$anonfun$main$1")
       .main(
-        methDep("scala.Predef$#println:(Ljava.lang.Object;)V"),
+        classDep("cats.syntax.TryOps$"),
         methDep(
           "cats.syntax.TryOps$#toValidated$extension:(Lscala.util.Try;)Lcats.data.Validated;"
         ),
+        classDep("cats.syntax.package$try_$"),
         methDep(
           "cats.syntax.package$try_$#catsSyntaxTry:(Lscala.util.Try;)Lscala.util.Try;"
         ),
+        b.altMetafactory,
+        methDep("scala.Predef$#println:(Ljava.lang.Object;)V"),
         methDep("scala.util.Try$#apply:(Lscala.Function0;)Lscala.util.Try;"),
         classDep("test.Valid"),
         methDep("test.Valid#<init>:()V"),
         methDep("test.Valid#foo:(I)V"),
-        b.altMetafactory,
         b.methDep("$anonfun$main$1"),
-        classDep("test.Valid")
       )
   }
 
@@ -177,7 +178,9 @@ class ClassSummarySuite extends BaseLinkerSuite with Summary {
           summarizer(className)
 
         if (BuildInfo.scalaBinaryVersion != "3" || !disableOnScala3) {
-          assertEquals(comparableSummary(obtainedSummary), comparableSummary(expectedSummary))
+          val obtained = comparableSummary(obtainedSummary)
+          val expected = comparableSummary(expectedSummary)
+          assertEquals(obtained, expected)
         }
       }
     }
@@ -200,5 +203,5 @@ class ClassSummarySuite extends BaseLinkerSuite with Summary {
     )
 
   private def comparableDependencies(dependencies: List[Dependency]): List[Dependency] =
-    dependencies.sortBy(_.ref.show)
+    dependencies.distinct.sortBy(_.ref.show)
 }
