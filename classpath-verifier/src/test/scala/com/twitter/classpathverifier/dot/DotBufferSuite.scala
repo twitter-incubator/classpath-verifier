@@ -33,51 +33,72 @@ class DotBufferSuite extends BaseLinkerSuite {
   testGraphOf(TestBuilds.inherited, """new test.Child().baz()""") { obtainedEvents =>
     val expectedEvents = List(
       AddDependency(Reference.Method.NoMethod, methRef("test.main.Main")),
-      AddDependency(methRef("test.main.Main"), classRef("test.Child")),
-      AddDependency(methRef("test.main.Main"), methRef("test.Child#<init>:()V")),
-      AddDependency(methRef("test.main.Main"), methRef("test.Child#baz:()I")),
-      AddDependency(methRef("test.main.Main"), classRef("test.Middle")),
-      AddDependency(methRef("test.main.Main"), classRef("test.ChildInterface")),
+      AddDependency(Reference.Method.NoMethod, methRef("test.main.Main#<init>:()V")),
+      AddDependency(methRef("java.lang.Object#<clinit>:()V"), methRef("java.lang.Object#registerNatives:()V")),
       AddDependency(methRef("test.Child#<init>:()V"), methRef("test.Middle#<init>:()V")),
       AddDependency(methRef("test.Child#baz:()I"), methRef("test.Child#bar:()I")),
       AddDependency(methRef("test.Child#baz:()I"), methRef("test.Child#foo:()I")),
-      AddDependency(methRef("test.main.Main"), classRef("test.Parent")),
-      AddDependency(methRef("test.main.Main"), classRef("test.MiddleInterface")),
-      AddDependency(methRef("test.main.Main"), classRef("java.lang.Object")),
       AddDependency(methRef("test.Middle#<init>:()V"), methRef("test.Parent#<init>:()V")),
       AddDependency(methRef("test.Middle#bar:()I"), methRef("test.Middle#foo:()I")),
+      AddDependency(methRef("test.main.Main#<init>:()V"), classRef("java.lang.Object")),
+      AddDependency(methRef("test.main.Main#<init>:()V"), methRef("java.lang.Object#<clinit>:()V")),
+      AddDependency(methRef("test.main.Main#<init>:()V"), methRef("java.lang.Object#<init>:()V")),
+      AddDependency(methRef("test.main.Main"), classRef("test.Child")),
+      AddDependency(methRef("test.main.Main"), classRef("test.ChildInterface")),
+      AddDependency(methRef("test.main.Main"), classRef("test.Middle")),
+      AddDependency(methRef("test.main.Main"), classRef("test.MiddleInterface")),
+      AddDependency(methRef("test.main.Main"), classRef("test.Parent")),
       AddDependency(methRef("test.main.Main"), classRef("test.ParentInterface")),
-      AddDependency(methRef("test.Parent#<init>:()V"), methRef("java.lang.Object#<init>:()V"))
+      AddDependency(methRef("test.main.Main"), methRef("test.Child#<init>:()V")),
+      AddDependency(methRef("test.main.Main"), methRef("test.Child#baz:()I")),
     )
-    assertEquals(obtainedEvents, expectedEvents)
+    assertEquals(obtainedEvents.sortBy(_.toString), expectedEvents.sortBy(_.toString))
   }
 
   testGraphOf(TestBuilds.testValueType, """test.Main.typeCheck(null)""") { obtainedEvents =>
     val expectedEvents = List(
       AddDependency(Reference.Method.NoMethod, methRef("test.main.Main")),
-      AddDependency(
-        methRef("test.main.Main"),
-        methRef("test.Main$#typeCheck:(Ljava.lang.Object;)Z")
-      ),
+      AddDependency(Reference.Method.NoMethod, methRef("test.main.Main#<init>:()V")),
+      AddDependency(methRef("java.lang.Object#<clinit>:()V"), methRef("java.lang.Object#registerNatives:()V")),
       AddDependency(
         methRef("test.Main$#typeCheck:(Ljava.lang.Object;)Z"),
         classRef("test.TheClass")
       ),
       AddDependency(
         methRef("test.Main$#typeCheck:(Ljava.lang.Object;)Z"),
-        classRef("java.lang.Object")
-      )
+        methRef("test.TheClass#<init>:()V")
+      ),
+      AddDependency(methRef("test.main.Main#<init>:()V"), classRef("java.lang.Object")),
+      AddDependency(methRef("test.main.Main#<init>:()V"), methRef("java.lang.Object#<clinit>:()V")),
+      AddDependency(methRef("test.main.Main#<init>:()V"), methRef("java.lang.Object#<init>:()V")),
+      AddDependency(methRef("test.main.Main"), classRef("test.Main$")),
+      AddDependency(methRef("test.main.Main"), methRef("test.Main$#<clinit>:()V")),
+      AddDependency(methRef("test.main.Main"), methRef("test.Main$#<init>:()V")),
+      AddDependency(
+        methRef("test.main.Main"),
+        methRef("test.Main$#typeCheck:(Ljava.lang.Object;)Z")
+      ),
     )
-    assertEquals(obtainedEvents, expectedEvents)
+    assertEquals(obtainedEvents.sortBy(_.toString), expectedEvents.sortBy(_.toString))
   }
 
   testBrokenGraphOf(TestBuilds.renameMethod, "test.Main$#proxy0:()I") { obtainedEvents =>
     val expectedEvents = List(
+      AddDependency(Reference.Method.NoMethod, methRef("test.Main$#<clinit>:()V")),
+      AddDependency(Reference.Method.NoMethod, methRef("test.Main$#<init>:()V")),
       AddDependency(Reference.Method.NoMethod, methRef("test.Main$#proxy0:()I")),
+      AddDependency(methRef("java.lang.Object#<clinit>:()V"), methRef("java.lang.Object#registerNatives:()V")),
+      AddDependency(methRef("test.Main$#<clinit>:()V"), classRef("test.Main$")),
+      AddDependency(methRef("test.Main$#<init>:()V"), classRef("java.lang.Object")),
+      AddDependency(methRef("test.Main$#<init>:()V"), methRef("java.lang.Object#<clinit>:()V")),
+      AddDependency(methRef("test.Main$#<init>:()V"), methRef("java.lang.Object#<init>:()V")),
+      AddDependency(methRef("test.Main$#proxy0:()I"), classRef("test.Library$")),
+      AddDependency(methRef("test.Main$#proxy0:()I"), methRef("test.Library$#<clinit>:()V")),
+      AddDependency(methRef("test.Main$#proxy0:()I"), methRef("test.Library$#<init>:()V")),
       AddDependency(methRef("test.Main$#proxy0:()I"), methRef("test.Library$#originalMethod:()I")),
       Missing(methRef("test.Library$#originalMethod:()I"))
     )
-    assertEquals(obtainedEvents, expectedEvents)
+    assertEquals(obtainedEvents.sortBy(_.toString), expectedEvents.sortBy(_.toString))
   }
 
   private def testBrokenGraphOf(build: Build, entrypoint: String)(op: List[DotEvent] => Unit) =
