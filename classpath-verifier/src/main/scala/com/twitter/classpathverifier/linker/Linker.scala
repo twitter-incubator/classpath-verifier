@@ -96,6 +96,7 @@ private class Linker(summarizer: Summarizer) {
       case dep: MethodDependency => verifyDep(classSummary, dep)
       case dep: ClassDependency =>
         ctx.dot.addDependency(dep.ref)
+        ctx.used.addDependency(classSummary)
         classSummary.parent.foreach { parent =>
           val parentReference = Reference.Clazz(parent)
           val dependency = ClassDependency(parentReference)
@@ -114,6 +115,7 @@ private class Linker(summarizer: Summarizer) {
       dep: MethodDependency
   )(implicit ctx: Context): Unit = {
     ctx.dot.addDependency(dep.ref)
+    ctx.used.addDependency(classSummary)
     classSummary.resolveDep(summarizer, dep) match {
       case None if classSummary.kind == ClassKind.Class =>
         ctx.dot.markMissing(dep.ref)

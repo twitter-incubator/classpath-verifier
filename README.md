@@ -39,6 +39,9 @@ Usage: classpath-verifier [options]
                            The DOT graph granularity. Possible values: package, class, method
   --dot-package-filter <value>
                            Package name to include in the DOT graph
+  --dead-code              Report unused JAR files
+  --dead-code-exclude <value>
+                           Path matcher to exclude from dead code analysis
 ```
 
 `--classpath` is used to define the classpath of the application. It accepts a list of
@@ -100,6 +103,19 @@ descriptor can be omitted:
 # These 2 are equivalent:
 com.acme.MyClass#myMethod
 com.acme.MyClass#myMethod:([java.lang.String;)V
+```
+
+### (Experimental) Dead code analysis
+
+`--dead-code` enables dead code analysis, which reports JARs that was not visited.
+At this point, there might be many false positives, so it should be used more as a candidate generator.
+
+`--dead-code-exclude <pattern>` can be used to filter out known JARs that are excluded
+from the dead code report. The syntax for the pattern follows [FileSystem.getPathMatcher](https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystem.html#getPathMatcher-java.lang.String-),
+which can be `regex:<regex>`, `glob:<glob>`, or `<glob>`, for example:
+
+```
+--dead-code-exclude '**/libs/3rdparty*' --dead-code-exclude '**/libs/util_*'
 ```
 
 ### Using as a library

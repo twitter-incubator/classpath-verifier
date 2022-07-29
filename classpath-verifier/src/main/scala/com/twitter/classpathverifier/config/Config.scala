@@ -34,7 +34,8 @@ final case class Config(
     entrypoints: List[Reference.Method],
     showPaths: Boolean,
     reporter: Reporter,
-    dotConfig: DotConfig
+    dotConfig: DotConfig,
+    usedCodeConfig: UsedCodeConfig,
 ) {
   def addJarEntrypoints(jar: Path): Config =
     Discovery.allRefs(jar)(Context.init(this)) match {
@@ -86,7 +87,8 @@ object Config {
       entrypoints = Nil,
       showPaths = true,
       reporter = Reporter.newReporter,
-      dotConfig = DotConfig.empty
+      dotConfig = DotConfig.empty,
+      usedCodeConfig = UsedCodeConfig.empty,
     )
 
   def toClasspath(classpath: String): List[Path] =

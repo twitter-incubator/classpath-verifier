@@ -17,6 +17,7 @@
 package com.twitter.classpathverifier.linker
 
 import java.io.InputStream
+import java.nio.file.Path
 
 import scala.collection.compat.immutable.LazyList
 import scala.collection.mutable.Buffer
@@ -35,7 +36,8 @@ sealed case class ClassSummary(
     name: String,
     parent: Option[String],
     interfaces: List[String],
-    methods: List[MethodSummary]
+    methods: List[MethodSummary],
+    path: Option[Path],
 ) {
 
   val superTypes: List[String] = parent.toList ++ interfaces
@@ -93,7 +95,8 @@ object ClassSummary {
         name = "",
         parent = None,
         interfaces = Nil,
-        methods = Nil
+        methods = Nil,
+        path = None,
       ) {
     override def resolveDep(
         summarize: Summarizer,
@@ -103,7 +106,9 @@ object ClassSummary {
     }
   }
 
-  def collect(ref: Reference.Clazz, stream: InputStream)(implicit ctx: Context): ClassSummary = {
+  def collect(ref: Reference.Clazz, path: Path, stream: InputStream)(implicit
+      ctx: Context
+  ): ClassSummary = {
     val buffer = Buffer.empty[MethodSummary]
     val visitor = new Visitor(buffer)
     val reader = new ClassReader(stream)
@@ -120,7 +125,7 @@ object ClassSummary {
         if (isInterface) ClassKind.Interface
         else if (isAbstract) ClassKind.AbstractClass
         else ClassKind.Class
-      ClassSummary(kind, Type.pathToName(visitor.fullName), parent, interfaces, methods)
+      ClassSummary(kind, Type.pathToName(visitor.fullName), parent, interfaces, methods, Some(path))
     } else {
       val error = ClassfileVersionError(ref, majorVersion)
       ctx.reporter.report(error)

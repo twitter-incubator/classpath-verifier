@@ -20,11 +20,13 @@ import java.nio.file.Paths
 
 import com.twitter.classpathverifier.config.Config
 import com.twitter.classpathverifier.config.DotConfig
+import com.twitter.classpathverifier.config.UsedCodeConfig
 import com.twitter.classpathverifier.diagnostics.LinkerError
 import com.twitter.classpathverifier.dot.DotBuffer
 import com.twitter.classpathverifier.jdk.JavaHome
 import com.twitter.classpathverifier.linker.Context
 import com.twitter.classpathverifier.linker.Linker
+import com.twitter.classpathverifier.linker.UsedCodeBuffer
 import scopt.OParser
 
 object Main {
@@ -37,6 +39,12 @@ object Main {
         val newConfig = ctx.config.copy(dotConfig = op(value, ctx.config.dotConfig))
         val dotBuffer = DotBuffer(newConfig.dotConfig)
         ctx.copy(config = newConfig, dot = dotBuffer)
+      }
+    def onUsedCodeConfig[T](op: (T, UsedCodeConfig) => UsedCodeConfig): (T, Context) => Context =
+      (value, ctx) => {
+        val newConfig = ctx.config.copy(usedCodeConfig = op(value, ctx.config.usedCodeConfig))
+        val usedCodeBuffer = UsedCodeBuffer(newConfig.usedCodeConfig)
+        ctx.copy(config = newConfig, used = usedCodeBuffer)
       }
     OParser.sequence(
       builder.programName("classpath-verifier"),
@@ -89,7 +97,16 @@ object Main {
         .opt[String]("dot-package-filter")
         .unbounded()
         .action(onDotConfig((v, c) => c.copy(packageFilter = c.packageFilter + v)))
-        .text("Package name to include in the DOT graph")
+        .text("Package name to include in the DOT graph"),
+      builder
+        .opt[Unit]("dead-code")
+        .action(onUsedCodeConfig((v, c) => c.copy(enabled = true)))
+        .text("Report unused JAR files"),
+      builder
+        .opt[String]("dead-code-exclude")
+        .unbounded()
+        .action(onUsedCodeConfig((v, c) => c.addExcludePattern(v)))
+        .text("Path matcher to exclude from dead code analysis"),
     )
   }
 
@@ -99,7 +116,15 @@ object Main {
       ctx.reporter.errors.foreach(reportError(_))
       System.exit(1)
     } else {
-      System.err.println("Classpath is consistent.")
+      if (ctx.config.usedCodeConfig.enabled) {
+        val unused = ctx.used.unusedJars(ctx)
+        if (unused.nonEmpty) {
+          unused.foreach(System.out.println(_))
+          System.exit(2)
+        }
+      } else {
+        System.err.println("Classpath is consistent.")
+      }
       System.exit(0)
     }
   }

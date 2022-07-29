@@ -7,20 +7,35 @@ jobs:
     name: Scalafix
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: olafurpg/setup-scala@v10
-      - run: sbt "scalafix --check" "Test / scalafix --check"
+      - uses: actions/checkout@v3
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 11
+          cache: sbt
+      - run: sbt -v "scalafix --check" "Test / scalafix --check"
   scalafmt:
     name: Scalafmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: olafurpg/setup-scala@v10
+      - uses: actions/checkout@v3
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 11
+          cache: sbt
       - run: ./bin/scalafmt --check
   headers:
     name: Copyright headers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: olafurpg/setup-scala@v10
-      - run: sbt "+ headerCheck" "+ Test / headerCheck"
+      - uses: actions/checkout@v3
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 11
+          cache: sbt
+      - run: sbt -v "+ headerCheck" "+ Test / headerCheck"

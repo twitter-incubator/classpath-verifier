@@ -84,6 +84,39 @@ object TestBuilds {
       .withLibrary(catsCore)
   )
 
+  val extraLibrary: Build = Build(
+    "extraLibrary",
+    Project("root")
+      .withSource("""|package test
+           |object Plain {
+           |  def foo(x: Int, y: String): Unit = {
+           |    val xStr = x.toString
+           |    val concat = xStr + y
+           |    System.out.println(concat)
+           |  }
+           |}""".stripMargin)
+      .withLibrary(catsCore)
+  )
+
+  val unusedSubproject: Build = Build(
+    "unusedSubproject",
+    Project("v1")
+      .withSource("""|package test
+                       |class CastClass
+                       |""".stripMargin),
+    Project("v2"),
+    Project("root")
+      .withSource("""|package test
+           |object Plain {
+           |  def foo(x: Int, y: String): Unit = {
+           |    val xStr = x.toString
+           |    val concat = xStr + y
+           |    System.out.println(concat)
+           |  }
+           |}""".stripMargin)
+      .dependsOn("v2")
+  )
+
   val privateAccess: Build = Build(
     "private",
     Project("root")

@@ -55,7 +55,7 @@ class ClassSummarizer(finder: Finder) extends Summarizer {
 
   private def summarize(clazz: Reference.Clazz)(implicit ctx: Context): ClassSummary =
     finder.find(clazz.fullClassName) match {
-      case None         => ClassSummary.Missing
-      case Some(stream) => stream.use(ClassSummary.collect(clazz, _))
+      case None        => ClassSummary.Missing
+      case Some(entry) => entry.stream.use(ClassSummary.collect(clazz, entry.path, _))
     }
 }

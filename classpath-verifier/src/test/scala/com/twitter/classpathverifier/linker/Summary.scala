@@ -16,6 +16,7 @@
 
 package com.twitter.classpathverifier.linker
 
+import java.nio.file.Path
 import java.{ util => ju }
 
 import scala.collection.mutable.Buffer
@@ -28,11 +29,12 @@ trait Summary {
       className: String,
       kind: ClassKind = ClassKind.Class,
       parent: String = "java.lang.Object",
-      interfaces: List[String] = Nil
+      interfaces: List[String] = Nil,
+      path: Option[Path] = None,
   )(op: ClassSummaryBuilder => Unit): ClassSummary = {
     val builder = new ClassSummaryBuilder(className, parent)
     op(builder)
-    ClassSummary(kind, className, Option(parent), interfaces, builder.methods)
+    ClassSummary(kind, className, Option(parent), interfaces, builder.methods, path)
   }
 
   class ClassSummaryBuilder(className: String, parent: String) {

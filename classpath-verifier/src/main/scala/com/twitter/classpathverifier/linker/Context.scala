@@ -26,7 +26,8 @@ case class Context(
     parent: Context,
     config: Config,
     currentMethod: Reference.Method,
-    dot: DotBuffer
+    dot: DotBuffer,
+    used: UsedCodeBuffer,
 ) {
   def in(ref: Reference.Method): Context =
     copy(parent = this, currentMethod = ref)
@@ -41,7 +42,14 @@ case class Context(
 }
 
 object Context {
-  object RootContext extends Context(null, Config.empty, Reference.Method.NoMethod, NoDotBuffer)
+  object RootContext
+      extends Context(null, Config.empty, Reference.Method.NoMethod, NoDotBuffer, NoUsedCodeBuffer)
   def init(config: Config): Context =
-    Context(RootContext, config, Reference.Method.NoMethod, DotBuffer(config.dotConfig))
+    Context(
+      RootContext,
+      config,
+      Reference.Method.NoMethod,
+      DotBuffer(config.dotConfig),
+      UsedCodeBuffer(config.usedCodeConfig)
+    )
 }
