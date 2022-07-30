@@ -5,7 +5,7 @@ jobs:
   repolinter:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: newrelic/repolinter-action@0e463abe6d591be494272ebb50a536dcb270bcfe #v1.6.5
       with:
         config_url: https://raw.githubusercontent.com/twitter/.github/master/repolinter-rulesets/default.yaml

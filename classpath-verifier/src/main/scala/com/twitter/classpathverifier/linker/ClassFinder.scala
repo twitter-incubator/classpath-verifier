@@ -33,7 +33,7 @@ import com.twitter.classpathverifier.descriptors.Type
 import com.twitter.classpathverifier.io.Managed
 
 trait Finder extends Closeable {
-  def find(name: String): Option[Managed[InputStream]]
+  def find(name: String): Option[FinderEntry]
   def allClasses(): List[String]
 }
 
@@ -44,7 +44,7 @@ object Finder {
     Type.pathToName(name.stripSuffix(".class"))
 
   object Empty extends Finder {
-    override def find(name: String): Option[Managed[InputStream]] = None
+    override def find(name: String): Option[FinderEntry] = None
     override def allClasses(): List[String] = Nil
     override def close(): Unit = ()
   }
@@ -60,7 +60,7 @@ private class ClassFinder(classpath: List[Path]) extends Finder {
 
   override def close(): Unit = finders.foreach(_.close())
 
-  override def find(name: String): Option[Managed[InputStream]] =
+  override def find(name: String): Option[FinderEntry] =
     finders.map(_.find(name)).collectFirst {
       case Some(handle) =>
         handle
@@ -70,7 +70,7 @@ private class ClassFinder(classpath: List[Path]) extends Finder {
 
   private def open(path: Path): Finder =
     if (Files.isRegularFile(path) && path.toString.endsWith(".jar"))
-      new JarClassFinder(new JarFile(path.toFile))
+      new JarClassFinder(path, new JarFile(path.toFile))
     else if (Files.isDirectory(path))
       new DirectoryClassFinder(path)
     else
@@ -78,13 +78,17 @@ private class ClassFinder(classpath: List[Path]) extends Finder {
 
 }
 
-private class JarClassFinder(jar: JarFile) extends Finder {
+case class FinderEntry(stream: Managed[InputStream], path: Path)
+
+private class JarClassFinder(path: Path, jar: JarFile) extends Finder { self =>
 
   override def close(): Unit = jar.close()
 
-  override def find(name: String): Option[Managed[InputStream]] = {
+  override def find(name: String): Option[FinderEntry] = {
     val path = Finder.nameToPath(name)
-    Option(jar.getJarEntry(path)).map(entry => Managed(jar.getInputStream(entry)))
+    Option(jar.getJarEntry(path)).map(entry =>
+      FinderEntry(Managed(jar.getInputStream(entry)), self.path)
+    )
   }
 
   override def allClasses(): List[String] = {
@@ -104,10 +108,10 @@ private class DirectoryClassFinder(directory: Path) extends Finder {
 
   override def close(): Unit = ()
 
-  override def find(name: String): Option[Managed[InputStream]] = {
+  override def find(name: String): Option[FinderEntry] = {
     val path = directory.resolve(Finder.nameToPath(name))
     if (Files.isRegularFile(path))
-      Some(Managed(new BufferedInputStream(Files.newInputStream(path))))
+      Some(FinderEntry(Managed(new BufferedInputStream(Files.newInputStream(path))), path))
     else
       None
   }

@@ -186,7 +186,8 @@ class ClassSummarySuite extends BaseLinkerSuite with Summary {
   private def comparableSummary(summary: ClassSummary): ClassSummary =
     summary.copy(
       interfaces = summary.interfaces.sorted,
-      methods = comparableMethodSummaries(summary.methods)
+      methods = comparableMethodSummaries(summary.methods),
+      path = None,
     )
 
   private def comparableMethodSummaries(methods: List[MethodSummary]): List[MethodSummary] =
